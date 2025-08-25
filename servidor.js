@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const os = require('os');
 
 // --- CONFIGURACIÓN DE SEGURIDAD ---
-const PASSWORD = "admin2025";
+const PASSWORD = "RAC2025%";
 const SESSION_TOKEN = "secret-triage-token-a1b2c3d4e5"; // Token para recordar la sesión
 
 const app = express();
@@ -129,3 +129,4 @@ server.listen(PORT, () => {
     console.log(` -> App del Médico:   http://${ip}:${PORT}/medico.html`);
     console.log(` -> Pantalla de TV:   http://${ip}:${PORT}/tv.html`);
 });
+
