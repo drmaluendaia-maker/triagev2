@@ -15,6 +15,13 @@ const PORT = 3000;
 
 app.use(express.static(__dirname));
 
+// **NUEVO: Redirección de la ruta principal**
+// Esto soluciona el error "CANNOT GET /"
+app.get('/', (req, res) => {
+    res.redirect('/registro.html');
+});
+
+
 // 2. Lógica de la aplicación
 let patients = [];
 let isEmergency = false;
