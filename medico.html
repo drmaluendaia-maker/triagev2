@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista del Médico - Triage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .dot-rojo { background-color: #ef4444; } .dot-amarillo { background-color: #f59e0b; }
+        .dot-verde { background-color: #10b981; } .dot-azul { background-color: #3b82f6; }
+        .status-atendiendo { background-color: #3b82f6; color: white; }
+        .status-ausente { background-color: #6b7280; color: white; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+        .emergency-banner { animation: blink 1.5s linear infinite; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2563eb; }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4">Acceso Médico</h2>
+            <p id="loginMessage" class="text-gray-600 mb-6">Iniciando sesión...</p>
+            <form id="loginForm" class="hidden">
+                <input type="password" id="passwordInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="••••••••">
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Ingresar</button>
+                <p id="loginError" class="text-red-500 text-sm mt-2 h-4"></p>
+            </form>
+        </div>
+    </div>
+    
+    <div id="emergencyConfirmModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-red-600">Confirmar Emergencia</h2>
+            <p class="text-gray-600 mb-6">¿Estás seguro de que deseas activar el protocolo de emergencia?</p>
+            <div class="flex justify-center gap-4">
+                <button id="confirmEmergencyBtn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Sí, Activar</button>
+                <button id="cancelEmergencyBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appContent" class="opacity-0 transition-opacity duration-500">
+        <div id="emergencyBanner" class="hidden emergency-banner bg-red-600 text-white text-center p-2 font-bold shadow-lg">EMERGENCIA EN CURSO</div>
+        <header class="bg-white shadow-md">
+            <div class="container mx-auto p-4 flex justify-between items-center flex-wrap gap-4">
+                <div class="flex items-center gap-4">
+                    <label class="switch"><input type="checkbox" id="guardiaToggle"><span class="slider"></span></label>
+                    <div>
+                        <span class="font-bold text-lg">Estado de Guardia</span>
+                        <p id="guardiaStatus" class="text-sm text-gray-500">Guardia Pasiva</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Activar Emergencia</button>
+                    <button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg hidden">Finalizar Emergencia</button>
+                </div>
+            </div>
+        </header>
+        <main class="container mx-auto p-8">
+            <h1 class="text-4xl font-bold text-center mb-8">Lista de Pacientes en Espera</h1>
+            <div id="patientList" class="space-y-4">
+                <p id="noPatientsMessage" class="text-center text-gray-500 mt-12 text-xl">No hay pacientes en espera.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+            const loginOverlay = document.getElementById('loginOverlay');
+            const loginForm = document.getElementById('loginForm');
+            const passwordInput = document.getElementById('passwordInput');
+            const loginError = document.getElementById('loginError');
+            const loginMessage = document.getElementById('loginMessage');
+            const appContent = document.getElementById('appContent');
+            const emergencyModal = document.getElementById('emergencyConfirmModal');
+            const confirmEmergencyBtn = document.getElementById('confirmEmergencyBtn');
+            const cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn');
+            const patientListContainer = document.getElementById('patientList');
+            const noPatientsMessage = document.getElementById('noPatientsMessage');
+            const emergencyBanner = document.getElementById('emergencyBanner');
+            const guardiaToggle = document.getElementById('guardiaToggle');
+            const guardiaStatus = document.getElementById('guardiaStatus');
+            const startEmergencyBtn = document.getElementById('startEmergencyBtn');
+            const endEmergencyBtn = document.getElementById('endEmergencyBtn');
+            let isGuardiaActiva = false;
+            let synth;
+
+            const sessionToken = localStorage.getItem('triageSessionToken');
+            if (sessionToken) {
+                socket.emit('authenticate_token', sessionToken);
+            } else {
+                loginMessage.textContent = 'Por favor, ingrese la contraseña para continuar.';
+                loginForm.classList.remove('hidden');
+            }
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (typeof Tone !== 'undefined' && !synth) {
+                    Tone.start();
+                    synth = new Tone.Synth().toDestination();
+                }
+                socket.emit('authenticate_password', passwordInput.value);
+            });
+
+            socket.on('auth_success', (data) => {
+                localStorage.setItem('triageSessionToken', data.token);
+                loginOverlay.style.display = 'none';
+                appContent.classList.remove('opacity-0');
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/sw.js').then(reg => {
+                        console.log('Service Worker registrado.');
+                        if (Notification.permission !== "denied") Notification.requestPermission();
+                    }).catch(err => console.error('Error al registrar Service Worker:', err));
+                }
+            });
+
+            socket.on('auth_fail', () => {
+                localStorage.removeItem('triageSessionToken');
+                loginMessage.textContent = 'Contraseña incorrecta. Intente de nuevo.';
+                loginForm.classList.remove('hidden');
+                passwordInput.value = '';
+            });
+
+            const playSound = (note, duration) => { if (synth) synth.triggerAttackRelease(note, duration); };
+
+            socket.on('new_patient_notification', ({ patient, patientCount }) => {
+                if (!isGuardiaActiva || !document.hasFocus()) return;
+                if (patient.nivelTriage === 'rojo') playSound("C5", "0.5s");
+                else if (patient.nivelTriage === 'amarillo' && patientCount === 1) playSound("A4", "0.5s");
+                else if ((patient.nivelTriage === 'verde' || patient.nivelTriage === 'azul') && patientCount === 1) playSound("C4", "0.2s");
+            });
+
+            socket.on('emergency_status_update', (isEmergency) => {
+                emergencyBanner.classList.toggle('hidden', !isEmergency);
+                startEmergencyBtn.classList.toggle('hidden', isEmergency);
+                endEmergencyBtn.classList.toggle('hidden', !isEmergency);
+                if (isEmergency && document.hasFocus()) playSound("E5", "1s");
+            });
+
+            function renderPatientList(patients) {
+                patientListContainer.innerHTML = '';
+                if (patients.length === 0) {
+                    patientListContainer.appendChild(noPatientsMessage);
+                } else {
+                    patients.forEach(patient => {
+                        const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                        const waitTime = Math.floor((Date.now() - patient.horaLlegada) / 60000);
+                        const patientCard = document.createElement('div');
+                        patientCard.className = 'bg-white p-4 rounded-lg shadow-md';
+                        let statusBadge = '';
+                        if (patient.status === 'atendiendo') statusBadge = `<span class="status-atendiendo text-xs font-bold uppercase px-2 py-1 rounded-full">Atendiendo</span>`;
+                        if (patient.status === 'ausente') statusBadge = `<span class="status-ausente text-xs font-bold uppercase px-2 py-1 rounded-full">Ausente</span>`;
+
+                        patientCard.innerHTML = `
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div>
+                                    <div class="flex-grow">
+                                        <div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-xl">${patient.nombre}</p>${statusBadge}</div>
+                                        <p class="text-sm text-gray-500">Ingreso: ${arrivalTime}</p>
+                                        <p class="text-sm text-gray-500">Espera: ${waitTime} min</p>
+                                        ${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-100 p-2 rounded w-full break-words"><b>Nota:</b> ${patient.notas}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-4 pl-7 flex-wrap">
+                                <button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C1</button>
+                                <button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C2</button>
+                                <button data-id="${patient.id}" class="absent-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded text-sm">Ausente</button>
+                                <button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Atendido</button>
+                            </div>`;
+                        patientListContainer.appendChild(patientCard);
+                    });
+                }
+            }
+            socket.on('update_patient_list', renderPatientList);
+
+            guardiaToggle.addEventListener('change', () => {
+                isGuardiaActiva = guardiaToggle.checked;
+                guardiaStatus.textContent = isGuardiaActiva ? 'Guardia Activa' : 'Guardia Pasiva';
+            });
+
+            startEmergencyBtn.addEventListener('click', () => emergencyModal.classList.remove('hidden'));
+            endEmergencyBtn.addEventListener('click', () => socket.emit('end_emergency'));
+            cancelEmergencyBtn.addEventListener('click', () => emergencyModal.classList.add('hidden'));
+            confirmEmergencyBtn.addEventListener('click', () => {
+                socket.emit('start_emergency');
+                emergencyModal.classList.add('hidden');
+            });
+
+            patientListContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                if (!target.dataset.id) return;
+                const patientId = parseInt(target.dataset.id, 10);
+                if (target.classList.contains('call-btn')) socket.emit('call_patient', { id: patientId, consultorio: target.dataset.consultorio });
+                if (target.classList.contains('absent-btn')) socket.emit('update_patient_status', { id: patientId, status: 'ausente' });
+                if (target.classList.contains('attended-btn')) socket.emit('delete_patient', patientId);
+            });
+        });
+    </script>
+</body>
+</html>

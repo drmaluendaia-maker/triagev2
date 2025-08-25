@@ -1,0 +1,49 @@
+ I N S T A L A C I O N Y U S O - S I S T E M A D E T R I A G E
+Sigue estos pasos para instalar y ejecutar el sistema en un nuevo ordenador
+que funcionara como servidor.
+
+PASO 1: INSTALACION UNICA (Solo si es la primera vez)
+Si el ordenador NUNCA ha usado esta aplicacion, necesitas instalar Node.js.
+
+Descarga Node.js:
+Ve a https://nodejs.org/ y descarga la version "LTS".
+
+Instala el programa:
+Haz doble clic en el archivo descargado y sigue los pasos del
+instalador (puedes dejar todas las opciones por defecto).
+
+PASO 2: INICIAR EL SERVIDOR DE TRIAGE
+Una vez que Node.js esta instalado, iniciar la aplicacion es muy facil.
+
+Abre esta carpeta.
+
+Haz doble clic en el archivo de inicio segun tu sistema operativo:
+
+En Windows:  "Iniciar Servidor.bat"
+
+En Mac:      "Iniciar Servidor.sh"
+
+Se abrira una ventana de terminal que iniciara el servidor y te
+mostrara las direcciones IP para acceder.
+
+IMPORTANTE: No cierres esta ventana de terminal. <<
+Mientras este abierta, el servidor estara funcionando.
+
+PASO 3: USAR LAS APLICACIONES
+Usa las URLs que aparecen en la terminal para abrir las aplicaciones
+en los navegadores de tus dispositivos (PC de registro, TV, etc).
+
+Para acceder a la App de Registro y la App del Medico, necesitaras
+una contrasena.
+
++---------------------------------+
+|   CONTRASENA POR DEFECTO:       |
+|                                 |
+|         Illia2025%              |
+|                                 |
++---------------------------------+
+
+(Puedes cambiar esta contrasena editando la primera linea del
+archivo "servidor.js").
+
+=========================================================================
