@@ -6,207 +6,141 @@
     <title>Vista del Médico - Triage</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .dot-rojo { background-color: #ef4444; } .dot-amarillo { background-color: #f59e0b; }
-        .dot-verde { background-color: #10b981; } .dot-azul { background-color: #3b82f6; }
-        .status-atendiendo { background-color: #3b82f6; color: white; }
-        .status-ausente { background-color: #6b7280; color: white; }
-        @keyframes blink { 50% { opacity: 0.6; } }
-        .emergency-banner { animation: blink 1.5s linear infinite; }
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #2563eb; }
-        input:checked + .slider:before { transform: translateX(26px); }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style> body { font-family: 'Inter', sans-serif; } .dot-rojo { background-color: #ef4444; } .dot-naranja { background-color: #f97316; } .dot-amarillo { background-color: #f59e0b; } .dot-verde { background-color: #10b981; } .dot-azul { background-color: #3b82f6; } .status-atendiendo { background-color: #3b82f6; color: white; } .status-ausente { background-color: #6b7280; color: white; } .status-pre_internacion { background-color: #a855f7; color: white; } @keyframes blink { 50% { opacity: 0.6; } } .emergency-banner { animation: blink 1.5s linear infinite; } .switch { position: relative; display: inline-block; width: 60px; height: 34px; } .switch input { opacity: 0; width: 0; height: 0; } .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; } .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; } input:checked + .slider { background-color: #2563eb; } input:checked + .slider:before { transform: translateX(26px); } </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4"><div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-sm"><h2 class="text-2xl font-bold mb-4">Acceso Médico</h2><form id="loginForm"><input type="text" id="userInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="Usuario Médico (ej: medico1)"><input type="password" id="passwordInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="••••••••"><div class="flex items-center justify-center mb-4"><input id="rememberMe" type="checkbox" class="h-4 w-4 text-indigo-600 rounded"><label for="rememberMe" class="ml-2 block text-sm text-gray-900">Recordar en este dispositivo</label></div><button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Ingresar</button><p id="loginError" class="text-red-500 text-sm mt-2 h-4"></p></form></div></div>
+    
+    <div id="emergencyConfirmModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4"><div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-md"><h2 class="text-2xl font-bold mb-4 text-red-600">Confirmar Emergencia</h2><p class="text-gray-600 mb-6">¿Estás seguro de que deseas activar el protocolo de emergencia?</p><div class="flex justify-center gap-4"><button id="confirmEmergencyBtn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Sí, Activar</button><button id="cancelEmergencyBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancelar</button></div></div></div>
+    <div id="historyModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4"><div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-3xl"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Historial del Paciente</h2><button id="closeHistoryBtn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button></div><div id="historyResults" class="max-h-96 overflow-y-auto space-y-4"></div></div></div>
 
-    <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-sm">
-            <h2 class="text-2xl font-bold mb-4">Acceso Médico</h2>
-            <p id="loginMessage" class="text-gray-600 mb-6">Iniciando sesión...</p>
-            <form id="loginForm" class="hidden">
-                <input type="password" id="passwordInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="••••••••">
-                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Ingresar</button>
-                <p id="loginError" class="text-red-500 text-sm mt-2 h-4"></p>
-            </form>
-        </div>
+    <div id="appContent" class="hidden opacity-0 transition-opacity duration-500">
+        <div id="emergencyBanner" class="hidden emergency-banner bg-red-600 text-white text-center p-2 font-bold shadow-lg">EMERGENCIA EN CURSO</div>
+        <header class="bg-white shadow-md"><div class="container mx-auto p-4 flex justify-between items-center flex-wrap gap-4"><div class="flex items-center gap-4"><label class="switch"><input type="checkbox" id="guardiaToggle"><span class="slider"></span></label><div><span class="font-bold text-lg">Estado de Guardia</span><p id="guardiaStatus" class="text-sm text-gray-500">Guardia Pasiva</p></div></div><div class="flex gap-4 items-center"><button id="logoutBtn" class="text-sm text-gray-600 hover:text-black font-semibold">Cerrar Sesión</button><button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Activar Emergencia</button><button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg hidden">Finalizar Emergencia</button></div></div></header>
+        
+        <main class="container mx-auto p-8">
+            <div id="attendingSection" class="mb-12"><h2 class="text-3xl font-bold text-center mb-6 text-blue-700">Atendiendo Actualmente</h2><div id="attendingPatientCard" class="space-y-4"><p class="text-center text-gray-500">Ningún paciente en consultorio.</p></div></div>
+            <div id="preAdmissionSection" class="mb-12"><h2 class="text-3xl font-bold text-center mb-6 text-purple-700">Pacientes en Pre-internación</h2><div id="preAdmissionList" class="space-y-4"><p class="text-center text-gray-500">No hay pacientes en observación.</p></div></div>
+            <h1 class="text-4xl font-bold text-center mb-8">Lista de Pacientes en Espera</h1><div id="patientList" class="space-y-4"><p id="noPatientsMessage" class="text-center text-gray-500 mt-12 text-xl">No hay pacientes en espera.</p></div>
+        </main>
+
+        <div class="container mx-auto mt-8 bg-white rounded-2xl shadow-2xl p-8 mb-8"><div class="flex justify-between items-center mb-4"><h2 class="text-3xl font-bold">Pacientes Atendidos en mi Guardia</h2><div class="flex gap-2"><button id="exportXLS" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Exportar XLS</button><button id="exportPDF" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Exportar PDF</button></div></div><div class="h-64 overflow-y-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ingreso</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Espera (min)</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th></tr></thead><tbody id="attendedHistoryList" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>
     </div>
     
-    <div id="emergencyConfirmModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-red-600">Confirmar Emergencia</h2>
-            <p class="text-gray-600 mb-6">¿Estás seguro de que deseas activar el protocolo de emergencia?</p>
-            <div class="flex justify-center gap-4">
-                <button id="confirmEmergencyBtn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Sí, Activar</button>
-                <button id="cancelEmergencyBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="appContent" class="opacity-0 transition-opacity duration-500">
-        <div id="emergencyBanner" class="hidden emergency-banner bg-red-600 text-white text-center p-2 font-bold shadow-lg">EMERGENCIA EN CURSO</div>
-        <header class="bg-white shadow-md">
-            <div class="container mx-auto p-4 flex justify-between items-center flex-wrap gap-4">
-                <div class="flex items-center gap-4">
-                    <label class="switch"><input type="checkbox" id="guardiaToggle"><span class="slider"></span></label>
-                    <div>
-                        <span class="font-bold text-lg">Estado de Guardia</span>
-                        <p id="guardiaStatus" class="text-sm text-gray-500">Guardia Pasiva</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Activar Emergencia</button>
-                    <button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg hidden">Finalizar Emergencia</button>
-                </div>
-            </div>
-        </header>
-        <main class="container mx-auto p-8">
-            <h1 class="text-4xl font-bold text-center mb-8">Lista de Pacientes en Espera</h1>
-            <div id="patientList" class="space-y-4">
-                <p id="noPatientsMessage" class="text-center text-gray-500 mt-12 text-xl">No hay pacientes en espera.</p>
-            </div>
-        </main>
-    </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const socket = io();
-            const loginOverlay = document.getElementById('loginOverlay');
-            const loginForm = document.getElementById('loginForm');
-            const passwordInput = document.getElementById('passwordInput');
-            const loginError = document.getElementById('loginError');
-            const loginMessage = document.getElementById('loginMessage');
-            const appContent = document.getElementById('appContent');
-            const emergencyModal = document.getElementById('emergencyConfirmModal');
-            const confirmEmergencyBtn = document.getElementById('confirmEmergencyBtn');
-            const cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn');
-            const patientListContainer = document.getElementById('patientList');
-            const noPatientsMessage = document.getElementById('noPatientsMessage');
-            const emergencyBanner = document.getElementById('emergencyBanner');
-            const guardiaToggle = document.getElementById('guardiaToggle');
-            const guardiaStatus = document.getElementById('guardiaStatus');
-            const startEmergencyBtn = document.getElementById('startEmergencyBtn');
-            const endEmergencyBtn = document.getElementById('endEmergencyBtn');
-            let isGuardiaActiva = false;
-            let synth;
+            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), emergencyModal = document.getElementById('emergencyConfirmModal'), confirmEmergencyBtn = document.getElementById('confirmEmergencyBtn'), cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn'), patientListContainer = document.getElementById('patientList'), preAdmissionListContainer = document.getElementById('preAdmissionList'), attendingPatientCardContainer = document.getElementById('attendingPatientCard'), noPatientsMessage = document.getElementById('noPatientsMessage'), emergencyBanner = document.getElementById('emergencyBanner'), guardiaToggle = document.getElementById('guardiaToggle'), guardiaStatus = document.getElementById('guardiaStatus'), startEmergencyBtn = document.getElementById('startEmergencyBtn'), endEmergencyBtn = document.getElementById('endEmergencyBtn'), attendedHistoryList = document.getElementById('attendedHistoryList'), exportXLSBtn = document.getElementById('exportXLS'), exportPDFBtn = document.getElementById('exportPDF'), historyModal = document.getElementById('historyModal'), historyResults = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), logoutBtn = document.getElementById('logoutBtn');
+            
+            let isGuardiaActiva = false, synth, currentUser = null, attendedHistoryData = [];
 
-            const sessionToken = localStorage.getItem('triageSessionToken');
-            if (sessionToken) {
-                socket.emit('authenticate_token', sessionToken);
-            } else {
-                loginMessage.textContent = 'Por favor, ingrese la contraseña para continuar.';
-                loginForm.classList.remove('hidden');
-            }
+            const token = localStorage.getItem('triageAuthToken');
+            if (token) socket.emit('authenticate_token', token);
 
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (typeof Tone !== 'undefined' && !synth) {
-                    Tone.start();
-                    synth = new Tone.Synth().toDestination();
-                }
-                socket.emit('authenticate_password', passwordInput.value);
-            });
-
-            socket.on('auth_success', (data) => {
-                localStorage.setItem('triageSessionToken', data.token);
-                loginOverlay.style.display = 'none';
-                appContent.classList.remove('opacity-0');
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('/sw.js').then(reg => {
-                        console.log('Service Worker registrado.');
-                        if (Notification.permission !== "denied") Notification.requestPermission();
-                    }).catch(err => console.error('Error al registrar Service Worker:', err));
+            loginForm.addEventListener('submit', (e) => { e.preventDefault(); if (typeof Tone !== 'undefined' && !synth) { Tone.start(); synth = new Tone.Synth().toDestination(); } socket.emit('authenticate_user', { user: userInput.value, pass: passwordInput.value }); });
+            
+            socket.on('auth_success', (userData) => {
+                if (userData.role === 'medico') {
+                    if (rememberMeCheck.checked) localStorage.setItem('triageAuthToken', userData.token);
+                    currentUser = userData; // Guardar el objeto de usuario completo
+                    loginOverlay.style.display = 'none';
+                    appContent.classList.remove('hidden', 'opacity-0');
+                    socket.emit('get_attended_history');
+                    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').then(reg => { if (Notification.permission !== "denied") Notification.requestPermission(); }).catch(err => console.error('Error:', err)); }
+                } else {
+                    loginError.textContent = 'Acceso no autorizado para este rol.';
                 }
             });
 
-            socket.on('auth_fail', () => {
-                localStorage.removeItem('triageSessionToken');
-                loginMessage.textContent = 'Contraseña incorrecta. Intente de nuevo.';
-                loginForm.classList.remove('hidden');
-                passwordInput.value = '';
-            });
+            socket.on('auth_fail', () => { localStorage.removeItem('triageAuthToken'); loginError.textContent = 'Usuario o contraseña incorrectos.'; });
+            logoutBtn.addEventListener('click', () => { localStorage.removeItem('triageAuthToken'); location.reload(); });
 
             const playSound = (note, duration) => { if (synth) synth.triggerAttackRelease(note, duration); };
+            socket.on('new_patient_notification', ({ patient, patientCount }) => { if (!isGuardiaActiva || !document.hasFocus()) return; if (patient.nivelTriage === 'rojo' || patient.nivelTriage === 'naranja') playSound("C5", "0.5s"); else if (patient.nivelTriage === 'amarillo' && patientCount === 1) playSound("A4", "0.5s"); else if ((patient.nivelTriage === 'verde' || patient.nivelTriage === 'azul') && patientCount === 1) playSound("C4", "0.2s"); });
+            socket.on('emergency_status_update', (isEmergency) => { emergencyBanner.classList.toggle('hidden', !isEmergency); startEmergencyBtn.classList.toggle('hidden', isEmergency); endEmergencyBtn.classList.toggle('hidden', !isEmergency); if (isEmergency && document.hasFocus()) playSound("E5", "1s"); });
 
-            socket.on('new_patient_notification', ({ patient, patientCount }) => {
-                if (!isGuardiaActiva || !document.hasFocus()) return;
-                if (patient.nivelTriage === 'rojo') playSound("C5", "0.5s");
-                else if (patient.nivelTriage === 'amarillo' && patientCount === 1) playSound("A4", "0.5s");
-                else if ((patient.nivelTriage === 'verde' || patient.nivelTriage === 'azul') && patientCount === 1) playSound("C4", "0.2s");
-            });
+            function createPatientCard(patient) {
+                const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                const waitTime = Math.floor((Date.now() - patient.horaLlegada) / 60000);
+                const patientCard = document.createElement('div');
+                patientCard.className = 'bg-white p-4 rounded-lg shadow-md';
+                let statusBadge = '', actionButtons = '';
 
-            socket.on('emergency_status_update', (isEmergency) => {
-                emergencyBanner.classList.toggle('hidden', !isEmergency);
-                startEmergencyBtn.classList.toggle('hidden', isEmergency);
-                endEmergencyBtn.classList.toggle('hidden', !isEmergency);
-                if (isEmergency && document.hasFocus()) playSound("E5", "1s");
-            });
+                if (patient.status === 'atendiendo') statusBadge = `<span class="status-atendiendo text-xs font-bold uppercase px-2 py-1 rounded-full">Atendiendo en C${patient.consultorio}</span>`;
+                if (patient.status === 'ausente') statusBadge = `<span class="status-ausente text-xs font-bold uppercase px-2 py-1 rounded-full">Ausente</span>`;
+                if (patient.status === 'pre_internacion') statusBadge = `<span class="status-pre_internacion text-xs font-bold uppercase px-2 py-1 rounded-full">Pre-internación</span>`;
 
-            function renderPatientList(patients) {
-                patientListContainer.innerHTML = '';
-                if (patients.length === 0) {
-                    patientListContainer.appendChild(noPatientsMessage);
-                } else {
-                    patients.forEach(patient => {
-                        const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                        const waitTime = Math.floor((Date.now() - patient.horaLlegada) / 60000);
-                        const patientCard = document.createElement('div');
-                        patientCard.className = 'bg-white p-4 rounded-lg shadow-md';
-                        let statusBadge = '';
-                        if (patient.status === 'atendiendo') statusBadge = `<span class="status-atendiendo text-xs font-bold uppercase px-2 py-1 rounded-full">Atendiendo</span>`;
-                        if (patient.status === 'ausente') statusBadge = `<span class="status-ausente text-xs font-bold uppercase px-2 py-1 rounded-full">Ausente</span>`;
+                if (patient.status === 'en_espera' || patient.status === 'ausente') actionButtons = `<button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C1</button><button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C2</button>`;
+                else if (patient.status === 'atendiendo') actionButtons = `<button data-id="${patient.id}" class="pre-admission-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded text-sm">Pre-internación</button><button data-id="${patient.id}" class="absent-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded text-sm">Ausente</button><button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Dar de Alta</button>`;
+                else if (patient.status === 'pre_internacion') actionButtons = `<button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Re-evaluar en C1</button><button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Re-evaluar en C2</button><button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Dar de Alta</button>`;
 
-                        patientCard.innerHTML = `
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-start gap-4">
-                                    <div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div>
-                                    <div class="flex-grow">
-                                        <div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-xl">${patient.nombre}</p>${statusBadge}</div>
-                                        <p class="text-sm text-gray-500">Ingreso: ${arrivalTime}</p>
-                                        <p class="text-sm text-gray-500">Espera: ${waitTime} min</p>
-                                        ${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-100 p-2 rounded w-full break-words"><b>Nota:</b> ${patient.notas}</p>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 mt-4 pl-7 flex-wrap">
-                                <button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C1</button>
-                                <button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C2</button>
-                                <button data-id="${patient.id}" class="absent-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded text-sm">Ausente</button>
-                                <button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Atendido</button>
-                            </div>`;
-                        patientListContainer.appendChild(patientCard);
-                    });
-                }
+                let nurseEvolutionsHTML = ''; if (patient.nurseEvolutions && patient.nurseEvolutions.length > 0) { nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; patient.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user}</p></div>`; }); nurseEvolutionsHTML += '</div>'; }
+                let doctorNotesHTML = '<div class="mt-4 border-t pt-2">'; if (patient.doctorNotes && patient.doctorNotes.length > 0) { doctorNotesHTML += '<h4 class="text-sm font-bold mb-2">Diagnóstico / Notas Médicas:</h4><div class="space-y-2">'; patient.doctorNotes.forEach(note => { doctorNotesHTML += `<div class="text-xs bg-blue-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.doctor}</p></div>`; }); doctorNotesHTML += '</div>'; } doctorNotesHTML += `<form class="add-note-form mt-2 flex gap-2" data-id="${patient.id}"><textarea class="w-full text-sm border rounded p-1" rows="2" placeholder="Añadir nota..."></textarea><button type="submit" class="bg-blue-500 text-white rounded px-3 text-sm font-bold">Guardar</button></form></div>`;
+                
+                patientCard.innerHTML = `<div class="flex items-start justify-between"><div class="flex items-start gap-4"><div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div><div class="flex-grow"><div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-xl">${patient.nombre}</p>${statusBadge}</div><p class="text-sm text-gray-500">DNI: ${patient.dni || 'No especificado'}</p><p class="text-sm text-gray-500">Ingreso: ${arrivalTime} (${waitTime} min espera)</p>${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-100 p-2 rounded w-full break-words"><b>Nota de Ingreso:</b> ${patient.notas}</p>` : ''}${nurseEvolutionsHTML}</div></div><div><button data-dni="${patient.dni || patient.nombre}" class="history-btn text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Ver Historial</button></div></div><div class="flex items-center gap-2 mt-4 pl-7 flex-wrap">${actionButtons}</div>${doctorNotesHTML}`;
+                return patientCard;
             }
-            socket.on('update_patient_list', renderPatientList);
 
-            guardiaToggle.addEventListener('change', () => {
-                isGuardiaActiva = guardiaToggle.checked;
-                guardiaStatus.textContent = isGuardiaActiva ? 'Guardia Activa' : 'Guardia Pasiva';
-            });
+            function renderAllLists(patients) {
+                if (!currentUser) return;
+                const attendingPatient = patients.find(p => p.status === 'atendiendo' && p.doctor_user === currentUser.user);
+                const preAdmissionPatients = patients.filter(p => p.status === 'pre_internacion');
+                const waitingPatients = patients.filter(p => p.status === 'en_espera' || p.status === 'ausente');
 
+                attendingPatientCardContainer.innerHTML = '';
+                if (attendingPatient) attendingPatientCardContainer.appendChild(createPatientCard(attendingPatient));
+                else attendingPatientCardContainer.innerHTML = '<p class="text-center text-gray-500">Ningún paciente en consultorio.</p>';
+
+                preAdmissionListContainer.innerHTML = '';
+                if (preAdmissionPatients.length > 0) preAdmissionPatients.forEach(p => preAdmissionListContainer.appendChild(createPatientCard(p)));
+                else preAdmissionListContainer.innerHTML = '<p class="text-center text-gray-500">No hay pacientes en observación.</p>';
+                
+                patientListContainer.innerHTML = '';
+                if (waitingPatients.length > 0) waitingPatients.forEach(p => patientListContainer.appendChild(createPatientCard(p)));
+                else patientListContainer.appendChild(noPatientsMessage);
+            }
+
+            function renderAttendedList(history) {
+                attendedHistoryData = history;
+                attendedHistoryList.innerHTML = '';
+                history.forEach((p, index) => { const row = document.createElement('tr'); const arrivalTime = new Date(p.horaLlegada).toLocaleString('es-ES'); const waitTime = Math.round((p.attendedAt - p.horaLlegada) / 60000); row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap">${index + 1}</td><td class="px-6 py-4 whitespace-nowrap">${p.nombre}</td><td class="px-6 py-4 whitespace-nowrap">${arrivalTime}</td><td class="px-6 py-4 whitespace-nowrap">${waitTime}</td><td class="px-6 py-4"><button data-id="${p.id}" class="continue-care-btn text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Continuar Atención</button></td>`; attendedHistoryList.appendChild(row); });
+            }
+
+            socket.on('update_patient_list', (patients) => { renderAllLists(patients); socket.emit('get_attended_history'); });
+            socket.on('attended_history_update', renderAttendedList);
+
+            guardiaToggle.addEventListener('change', () => { isGuardiaActiva = guardiaToggle.checked; guardiaStatus.textContent = isGuardiaActiva ? 'Guardia Activa' : 'Guardia Pasiva'; });
             startEmergencyBtn.addEventListener('click', () => emergencyModal.classList.remove('hidden'));
             endEmergencyBtn.addEventListener('click', () => socket.emit('end_emergency'));
             cancelEmergencyBtn.addEventListener('click', () => emergencyModal.classList.add('hidden'));
-            confirmEmergencyBtn.addEventListener('click', () => {
-                socket.emit('start_emergency');
-                emergencyModal.classList.add('hidden');
-            });
+            confirmEmergencyBtn.addEventListener('click', () => { socket.emit('start_emergency'); emergencyModal.classList.add('hidden'); });
 
-            patientListContainer.addEventListener('click', (e) => {
+            function handlePatientActions(e) {
                 const target = e.target;
-                if (!target.dataset.id) return;
-                const patientId = parseInt(target.dataset.id, 10);
+                const patientId = parseInt(target.closest('[data-id]')?.dataset.id || target.dataset.id);
+                if (!patientId && !target.classList.contains('history-btn')) return;
+
                 if (target.classList.contains('call-btn')) socket.emit('call_patient', { id: patientId, consultorio: target.dataset.consultorio });
                 if (target.classList.contains('absent-btn')) socket.emit('update_patient_status', { id: patientId, status: 'ausente' });
-                if (target.classList.contains('attended-btn')) socket.emit('delete_patient', patientId);
-            });
+                if (target.classList.contains('attended-btn')) socket.emit('mark_as_attended', { patientId: patientId, attendedByUsername: currentUser.user });
+                if (target.classList.contains('pre-admission-btn')) socket.emit('update_patient_status', { id: patientId, status: 'pre_internacion' });
+                if (target.classList.contains('history-btn')) socket.emit('search_patient_history', { query: target.dataset.dni, role: 'medico' });
+                
+                if (target.closest('.add-note-form')) { e.preventDefault(); const form = target.closest('.add-note-form'); const textarea = form.querySelector('textarea'); const noteText = textarea.value.trim(); if (noteText) { socket.emit('add_doctor_note', { id: parseInt(form.dataset.id), note: noteText }); textarea.value = ''; } }
+            }
+            appContent.addEventListener('click', handlePatientActions);
+
+            attendedHistoryList.addEventListener('click', (e) => { if (e.target.classList.contains('continue-care-btn')) { const patientId = parseInt(e.target.dataset.id); if (confirm("¿Desea reactivar a este paciente y moverlo a pre-internación?")) { socket.emit('continue_care', patientId); } } });
+            socket.on('patient_history_result', (results) => { if (results && results.length > 0) { historyResults.innerHTML = ''; results.forEach(p => { const visitDiv = document.createElement('div'); visitDiv.className = 'bg-gray-100 p-4 rounded-md'; let nurseEvolutionsHTML = ''; if (p.nurseEvolutions && p.nurseEvolutions.length > 0) { nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; p.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user}</p></div>`; }); nurseEvolutionsHTML += '</div>'; } let doctorNotesHTML = ''; if (p.doctorNotes && p.doctorNotes.length > 0) { doctorNotesHTML += '<h4 class="text-sm font-bold mt-3 mb-2 text-blue-800">Notas Médicas:</h4><div class="space-y-2">'; p.doctorNotes.forEach(note => { doctorNotesHTML += `<div class="text-xs bg-blue-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.doctor}</p></div>`; }); doctorNotesHTML += '</div>'; } visitDiv.innerHTML = `<div class="flex items-center justify-between"><p class="font-bold">${p.nombre} <span class="font-normal text-gray-600">- DNI: ${p.dni || 'N/A'}</span></p><div class="flex items-center gap-2"><span class="text-xs font-semibold">${new Date(p.attendedAt).toLocaleString('es-ES')}</span><div class="w-3 h-3 rounded-full dot-${p.nivelTriage}"></div></div></div><p class="text-sm mt-2 text-gray-700"><b>Nota de Ingreso:</b> ${p.notas || 'Sin notas.'}</p>${nurseEvolutionsHTML}${doctorNotesHTML}`; historyResults.appendChild(visitDiv); }); historyModal.classList.remove('hidden'); } else { alert('No se encontró historial para este paciente.'); } });
+            closeHistoryBtn.addEventListener('click', () => { historyModal.classList.add('hidden'); });
+
+            exportXLSBtn.addEventListener('click', () => { const dataToExport = attendedHistoryData.map((p, i) => ({ '#': i + 1, Nombre: p.nombre, Observaciones: p.notas, 'Hora de Carga': new Date(p.horaLlegada).toLocaleString('es-ES'), 'Tiempo de Espera (min)': Math.round((p.attendedAt - p.horaLlegada) / 60000) })); const worksheet = XLSX.utils.json_to_sheet(dataToExport); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, "Pacientes Atendidos"); XLSX.writeFile(workbook, "ReporteGuardiaMedica.xlsx"); });
+            exportPDFBtn.addEventListener('click', () => { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.autoTable({ head: [['#', 'Nombre', 'Observaciones', 'Hora de Carga', 'Espera (min)']], body: attendedHistoryData.map((p, i) => [i + 1, p.nombre, p.notas, new Date(p.horaLlegada).toLocaleString('es-ES'), Math.round((p.attendedAt - p.horaLlegada) / 60000)]) }); doc.save('ReporteGuardiaMedica.pdf'); });
         });
     </script>
 </body>
