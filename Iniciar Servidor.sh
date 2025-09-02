@@ -1,9 +1,9 @@
 #!/bin/bash
-echo "Verificando e instalando dependencias..."
+echo "Verificando e instalando dependencias (si es necesario)..."
 npm install
 
 echo ""
-echo "Iniciando servidor..."
+echo "Iniciando servidor de Triage v2..."
 echo ""
 
 node servidor.js
