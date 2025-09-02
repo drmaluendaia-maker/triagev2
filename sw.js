@@ -1,4 +1,9 @@
-// Este archivo se ejecuta en segundo plano para gestionar las notificaciones.
+// =================================================================================
+// SERVICE WORKER PARA NOTIFICACIONES PUSH
+// Autor: Dr. Maluenda IA & Gemini
+// Descripción: Se ejecuta en segundo plano para recibir eventos del servidor
+// y mostrar notificaciones nativas en el dispositivo.
+// =================================================================================
 
 // 1. Importar la librería de Socket.IO
 self.importScripts('/socket.io/socket.io.js');
@@ -10,9 +15,8 @@ console.log('Service Worker iniciado y conectado.');
 
 // --- Lógica de Notificaciones ---
 
-// Función para reproducir un sonido (vibración en móviles)
+// Función para hacer vibrar el dispositivo (si es soportado)
 const playSound = () => {
-    // La vibración es una excelente alternativa al sonido en segundo plano
     if ('vibrate' in self.navigator) {
         self.navigator.vibrate([200, 100, 200]); // Vibra, pausa, vibra
     }
@@ -32,18 +36,19 @@ socket.on('new_patient_notification', ({ patient, patientCount }) => {
     const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     const options = {
         body: `Nivel: ${patient.nivelTriage.toUpperCase()}\nLlegada: ${arrivalTime}\n${patient.notas ? 'Notas: ' + patient.notas : ''}`,
-        icon: '/favicon.ico', // Puedes añadir un ícono aquí
-        tag: `patient-${patient.id}` // Agrupa notificaciones del mismo paciente
+        icon: '/logo.png',
+        tag: `patient-${patient.id}` // Agrupa notificaciones
     };
 
     if (patient.nivelTriage === 'rojo') {
         playSound();
         showNotification(`¡NIVEL 1! - ${patient.nombre}`, options);
+    } else if (patient.nivelTriage === 'naranja') {
+        playSound();
+        showNotification(`¡NIVEL 2 - ALTA URGENCIA! - ${patient.nombre}`, options);
     } else if (patient.nivelTriage === 'amarillo' && patientCount === 1) {
         playSound();
-        showNotification(`Paciente Nivel 2 (Sin espera) - ${patient.nombre}`, options);
-    } else if ((patient.nivelTriage === 'verde' || patient.nivelTriage === 'azul') && patientCount === 1) {
-        showNotification(`Nuevo Paciente en Espera - ${patient.nombre}`, options);
+        showNotification(`Paciente Nivel 3 (Sin espera) - ${patient.nombre}`, options);
     }
 });
 
@@ -54,7 +59,7 @@ socket.on('emergency_status_update', (isEmergency) => {
         playSound();
         showNotification("¡EMERGENCIA ACTIVADA!", {
             body: "Se ha activado el protocolo de emergencia. Todos los médicos al shock room.",
-            icon: '/favicon.ico',
+            icon: '/logo.png',
             tag: 'emergency-alert'
         });
     }
