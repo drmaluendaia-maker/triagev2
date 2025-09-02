@@ -107,16 +107,40 @@
                         <p id="noPatientsMessage" class="text-center text-gray-500 mt-8">No hay pacientes en espera.</p>
                     </div>
                 </div>
+                <div class="bg-white rounded-2xl shadow-2xl p-8 mt-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-3xl font-bold">Mi Turno</h2>
+                        <div class="flex gap-2">
+                            <button id="exportShiftXLS" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Exportar XLS</button>
+                            <button id="exportShiftPDF" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Exportar PDF</button>
+                        </div>
+                    </div>
+                    <div class="h-64 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hora</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shiftHistoryList" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const socket = io();
-            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), triageForm = document.getElementById('triageForm'), patientNameInput = document.getElementById('patientName'), patientDniInput = document.getElementById('patientDni'), patientNotesInput = document.getElementById('patientNotes'), triageButtons = document.querySelectorAll('.triage-button'), patientList = document.getElementById('patientList'), noPatientsMessage = document.getElementById('noPatientsMessage'), historyModal = document.getElementById('historyModal'), historyResultsContainer = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), historySearchForm = document.getElementById('historySearchForm'), historySearchInput = document.getElementById('historySearchInput'), currentUserSpan = document.getElementById('currentUser'), logoutBtn = document.getElementById('logoutBtn');
-            let selectedLevel = null;
+            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), triageForm = document.getElementById('triageForm'), patientNameInput = document.getElementById('patientName'), patientDniInput = document.getElementById('patientDni'), patientNotesInput = document.getElementById('patientNotes'), triageButtons = document.querySelectorAll('.triage-button'), patientList = document.getElementById('patientList'), noPatientsMessage = document.getElementById('noPatientsMessage'), historyModal = document.getElementById('historyModal'), historyResultsContainer = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), historySearchForm = document.getElementById('historySearchForm'), historySearchInput = document.getElementById('historySearchInput'), currentUserSpan = document.getElementById('currentUser'), logoutBtn = document.getElementById('logoutBtn'), shiftHistoryList = document.getElementById('shiftHistoryList'), exportShiftXLSBtn = document.getElementById('exportShiftXLS'), exportShiftPDFBtn = document.getElementById('exportShiftPDF');
+            let selectedLevel = null, currentUser = null, shiftHistoryData = [];
 
             const token = localStorage.getItem('triageAuthToken');
             if (token) {
@@ -131,9 +155,11 @@
             socket.on('auth_success', (user) => {
                  if (user.role === 'registro') {
                     if (rememberMeCheck.checked) localStorage.setItem('triageAuthToken', user.token);
+                    currentUser = user;
                     loginOverlay.style.display = 'none';
                     appContent.classList.remove('hidden','opacity-0');
                     currentUserSpan.textContent = `Usuario: ${user.fullName}`;
+                    socket.emit('get_attended_history');
                 } else {
                     loginError.textContent = 'Acceso denegado para este rol.';
                 }
@@ -185,8 +211,31 @@
                     patientList.appendChild(patientDiv);
                 });
             }
+            
+            function renderShiftHistory(history) {
+                if (!currentUser) return;
+                const userShift = getNurseShift(new Date());
+                shiftHistoryData = history.filter(p => p.shift === userShift && p.registeredBy === currentUser.user);
+                shiftHistoryList.innerHTML = '';
+                shiftHistoryData.forEach(p => {
+                    const row = document.createElement('tr');
+                    const arrivalTime = new Date(p.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">${p.nombre}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${arrivalTime}</td>
+                        <td class="px-6 py-4"><button data-id="${p.id}" class="view-add-note-btn text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Ver/Añadir Nota</button></td>`;
+                    shiftHistoryList.appendChild(row);
+                });
+            }
 
-            socket.on('update_patient_list', renderPatientList);
+            socket.on('update_patient_list', (patients) => {
+                renderPatientList(patients);
+                socket.emit('get_attended_history');
+            });
+
+            socket.on('attended_history_update', (history) => {
+                renderShiftHistory(history);
+            });
 
             triageButtons.forEach(button => {
                 button.addEventListener('click', () => {
@@ -292,6 +341,45 @@
                     }
                 }
             });
+
+            shiftHistoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('view-add-note-btn')) {
+                    const patientId = parseInt(e.target.dataset.id);
+                    const patient = shiftHistoryData.find(p => p.id === patientId);
+                    socket.emit('search_patient_history', { query: patient.dni || patient.nombre, role: 'registro' });
+                }
+            });
+
+            const getNurseShift = (date) => { const hour = date.getHours(); const minutes = date.getMinutes(); const time = hour + minutes / 60; if (time >= 6.5 && time < 14.5) return "Mañana"; if (time >= 14.5 && time < 22.5) return "Tarde"; return "Noche"; };
+
+            const exportShiftData = (format) => {
+                const dataToExport = shiftHistoryData.map(p => ({
+                    'Nombre': p.nombre,
+                    'DNI': p.dni || 'N/A',
+                    'Hora de Ingreso': new Date(p.horaLlegada).toLocaleTimeString('es-ES'),
+                    'Nivel de Triage': p.nivelTriage,
+                    'Notas': p.notas
+                }));
+
+                if (format === 'xls') {
+                    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte de Turno");
+                    XLSX.writeFile(workbook, `ReporteTurno_${currentUser.user}.xlsx`);
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.autoTable({
+                        head: [Object.keys(dataToExport[0])],
+                        body: dataToExport.map(Object.values),
+                    });
+                    doc.save(`ReporteTurno_${currentUser.user}.pdf`);
+                }
+            };
+
+            exportShiftXLSBtn.addEventListener('click', () => exportShiftData('xls'));
+            exportShiftPDFBtn.addEventListener('click', () => exportShiftData('pdf'));
+
         });
     </script>
 </body>
