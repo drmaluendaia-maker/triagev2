@@ -1,38 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1">
-		<meta name="Description" content="This is a simple chrome WebAPK template.">
-
-		<!-- WebApp Manifest -->
-		<link rel="manifest" href="manifest.json">
-
-		<!-- Chrome for Android -->
-		<meta name="theme-color" content="#000000">
-		<!-- Apple iOS -->
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="default">
-		<meta name="apple-mobile-web-app-title" content="WebApp">
-		<link rel="apple-touch-icon" href="logo.png">
-		<!-- Windows (optional) -->
-		<meta name="msapplication-TileColor" content="#000000">
-		<meta name="msapplication-TileImage" content="/logo.png">
-
-		<title>WebAPK</title>
-
-		<!-- Fallback icons for general use -->
-		<link rel="icon" type="image/png" href="logo.png">
-
-		<link rel="stylesheet" type="text/css" href="css/main.css">
-	</head>
-	<body>
-		<h1>
-			<span>Chrome WebAPK</span>
-		</h1>
-		<p>This is a simple chrome WebAPK template.</p>
-		<span id="connection"><abbr title="You are online!">&#128246;</abbr></span>
-		<script src="js/jquery.min.js"></script>
-		<script src="js/main.js"></script>		
-	</body>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Triage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="text-center p-8">
+        <h1 class="text-5xl font-black text-gray-800 mb-4">Sistema de Triage V2</h1>
+        <p class="text-gray-600 mb-12 max-w-2xl mx-auto">Seleccione el módulo al que desea acceder. Cada vista está optimizada para su función específica dentro del flujo de atención de la guardia.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Card para Registro -->
+            <a href="/registro.html" class="card bg-white p-8 rounded-xl shadow-md flex flex-col items-center justify-center">
+                <div class="bg-blue-100 text-blue-600 rounded-full p-4 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Registro (Enfermería)</h2>
+                <p class="text-gray-500 mt-2">Carga de nuevos pacientes y gestión de la lista de espera.</p>
+            </a>
+            <!-- Card para Médicos -->
+            <a href="/medico.html" class="card bg-white p-8 rounded-xl shadow-md flex flex-col items-center justify-center">
+                <div class="bg-green-100 text-green-600 rounded-full p-4 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Vista Médica</h2>
+                <p class="text-gray-500 mt-2">Llamada de pacientes, gestión de consultorios y notas médicas.</p>
+            </a>
+            <!-- Card para Sala de Espera -->
+            <a href="/tv.html" class="card bg-white p-8 rounded-xl shadow-md flex flex-col items-center justify-center">
+                <div class="bg-indigo-100 text-indigo-600 rounded-full p-4 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Sala de Espera (TV)</h2>
+                <p class="text-gray-500 mt-2">Visualización en tiempo real de la lista de espera para pacientes.</p>
+            </a>
+        </div>
+    </div>
+</body>
 </html>
