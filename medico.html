@@ -14,12 +14,11 @@
 <body class="bg-gray-100 min-h-screen">
     <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4"><div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-sm"><h2 class="text-2xl font-bold mb-4">Acceso Médico</h2><form id="loginForm"><input type="text" id="userInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="Usuario Médico (ej: medico1)"><input type="password" id="passwordInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="••••••••"><div class="flex items-center justify-center mb-4"><input id="rememberMe" type="checkbox" class="h-4 w-4 text-indigo-600 rounded"><label for="rememberMe" class="ml-2 block text-sm text-gray-900">Recordar en este dispositivo</label></div><button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Ingresar</button><p id="loginError" class="text-red-500 text-sm mt-2 h-4"></p></form></div></div>
     
-    <div id="emergencyConfirmModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4"><div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-md"><h2 class="text-2xl font-bold mb-4 text-red-600">Confirmar Emergencia</h2><p class="text-gray-600 mb-6">¿Estás seguro de que deseas activar el protocolo de emergencia?</p><div class="flex justify-center gap-4"><button id="confirmEmergencyBtn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Sí, Activar</button><button id="cancelEmergencyBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancelar</button></div></div></div>
-    <div id="historyModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4"><div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-3xl"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Historial del Paciente</h2><button id="closeHistoryBtn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button></div><div id="historyResults" class="max-h-96 overflow-y-auto space-y-4"></div></div></div>
+    <div id="historyModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4"><div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-4xl"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Historial del Paciente</h2><button id="closeHistoryBtn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button></div><div id="historyResults" class="max-h-[80vh] overflow-y-auto space-y-4 pr-2"></div></div></div>
 
     <div id="appContent" class="hidden opacity-0 transition-opacity duration-500">
         <div id="emergencyBanner" class="hidden emergency-banner bg-red-600 text-white text-center p-2 font-bold shadow-lg">EMERGENCIA EN CURSO</div>
-        <header class="bg-white shadow-md"><div class="container mx-auto p-4 flex justify-between items-center flex-wrap gap-4"><div class="flex items-center gap-4"><label class="switch"><input type="checkbox" id="guardiaToggle"><span class="slider"></span></label><div><span class="font-bold text-lg">Estado de Guardia</span><p id="guardiaStatus" class="text-sm text-gray-500">Guardia Pasiva</p></div></div><div class="flex gap-4 items-center"><button id="logoutBtn" class="text-sm text-gray-600 hover:text-black font-semibold">Cerrar Sesión</button><button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Activar Emergencia</button><button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg hidden">Finalizar Emergencia</button></div></div></header>
+        <header class="bg-white shadow-md"><div class="container mx-auto p-4 flex justify-between items-center flex-wrap gap-4"><div class="flex items-center gap-4"><label class="switch"><input type="checkbox" id="guardiaToggle"><span class="slider"></span></label><div><span class="font-bold text-lg">Estado de Guardia</span><p id="guardiaStatus" class="text-sm text-gray-500">Guardia Pasiva</p></div></div><div class="flex gap-4 items-center"><span id="currentUser" class="text-sm text-gray-600 mr-4"></span><button id="logoutBtn" class="text-sm text-gray-600 hover:text-black font-semibold">Cerrar Sesión</button><button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Activar Emergencia</button><button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg hidden">Finalizar Emergencia</button></div></div></header>
         
         <main class="container mx-auto p-8">
             <div id="attendingSection" class="mb-12"><h2 class="text-3xl font-bold text-center mb-6 text-blue-700">Atendiendo Actualmente</h2><div id="attendingPatientCard" class="space-y-4"><p class="text-center text-gray-500">Ningún paciente en consultorio.</p></div></div>
@@ -35,7 +34,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const socket = io();
-            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), emergencyModal = document.getElementById('emergencyConfirmModal'), confirmEmergencyBtn = document.getElementById('confirmEmergencyBtn'), cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn'), patientListContainer = document.getElementById('patientList'), preAdmissionListContainer = document.getElementById('preAdmissionList'), attendingPatientCardContainer = document.getElementById('attendingPatientCard'), noPatientsMessage = document.getElementById('noPatientsMessage'), emergencyBanner = document.getElementById('emergencyBanner'), guardiaToggle = document.getElementById('guardiaToggle'), guardiaStatus = document.getElementById('guardiaStatus'), startEmergencyBtn = document.getElementById('startEmergencyBtn'), endEmergencyBtn = document.getElementById('endEmergencyBtn'), attendedHistoryList = document.getElementById('attendedHistoryList'), exportXLSBtn = document.getElementById('exportXLS'), exportPDFBtn = document.getElementById('exportPDF'), historyModal = document.getElementById('historyModal'), historyResults = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), logoutBtn = document.getElementById('logoutBtn');
+            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), patientListContainer = document.getElementById('patientList'), preAdmissionListContainer = document.getElementById('preAdmissionList'), attendingPatientCardContainer = document.getElementById('attendingPatientCard'), noPatientsMessage = document.getElementById('noPatientsMessage'), emergencyBanner = document.getElementById('emergencyBanner'), guardiaToggle = document.getElementById('guardiaToggle'), guardiaStatus = document.getElementById('guardiaStatus'), startEmergencyBtn = document.getElementById('startEmergencyBtn'), endEmergencyBtn = document.getElementById('endEmergencyBtn'), attendedHistoryList = document.getElementById('attendedHistoryList'), exportXLSBtn = document.getElementById('exportXLS'), exportPDFBtn = document.getElementById('exportPDF'), historyModal = document.getElementById('historyModal'), historyResults = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), logoutBtn = document.getElementById('logoutBtn'), currentUserSpan = document.getElementById('currentUser');
             
             let isGuardiaActiva = false, synth, currentUser = null, attendedHistoryData = [];
 
@@ -47,9 +46,10 @@
             socket.on('auth_success', (userData) => {
                 if (userData.role === 'medico') {
                     if (rememberMeCheck.checked) localStorage.setItem('triageAuthToken', userData.token);
-                    currentUser = userData; // Guardar el objeto de usuario completo
+                    currentUser = userData;
                     loginOverlay.style.display = 'none';
                     appContent.classList.remove('hidden', 'opacity-0');
+                    currentUserSpan.textContent = `Dr/a. ${userData.fullName}`;
                     socket.emit('get_attended_history');
                     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').then(reg => { if (Notification.permission !== "denied") Notification.requestPermission(); }).catch(err => console.error('Error:', err)); }
                 } else {
@@ -61,7 +61,7 @@
             logoutBtn.addEventListener('click', () => { localStorage.removeItem('triageAuthToken'); location.reload(); });
 
             const playSound = (note, duration) => { if (synth) synth.triggerAttackRelease(note, duration); };
-            socket.on('new_patient_notification', ({ patient, patientCount }) => { if (!isGuardiaActiva || !document.hasFocus()) return; if (patient.nivelTriage === 'rojo' || patient.nivelTriage === 'naranja') playSound("C5", "0.5s"); else if (patient.nivelTriage === 'amarillo' && patientCount === 1) playSound("A4", "0.5s"); else if ((patient.nivelTriage === 'verde' || patient.nivelTriage === 'azul') && patientCount === 1) playSound("C4", "0.2s"); });
+            socket.on('new_patient_notification', ({ patient, patientCount }) => { if (!isGuardiaActiva || !document.hasFocus()) return; if (patient.nivelTriage === 'rojo' || patient.nivelTriage === 'naranja') playSound("C5", "0.5s"); else if (patient.nivelTriage === 'amarillo' && patientCount === 1) playSound("A4", "0.5s"); });
             socket.on('emergency_status_update', (isEmergency) => { emergencyBanner.classList.toggle('hidden', !isEmergency); startEmergencyBtn.classList.toggle('hidden', isEmergency); endEmergencyBtn.classList.toggle('hidden', !isEmergency); if (isEmergency && document.hasFocus()) playSound("E5", "1s"); });
 
             function createPatientCard(patient) {
@@ -78,11 +78,24 @@
                 if (patient.status === 'en_espera' || patient.status === 'ausente') actionButtons = `<button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C1</button><button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Llamar a C2</button>`;
                 else if (patient.status === 'atendiendo') actionButtons = `<button data-id="${patient.id}" class="pre-admission-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded text-sm">Pre-internación</button><button data-id="${patient.id}" class="absent-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded text-sm">Ausente</button><button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Dar de Alta</button>`;
                 else if (patient.status === 'pre_internacion') actionButtons = `<button data-id="${patient.id}" data-consultorio="1" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Re-evaluar en C1</button><button data-id="${patient.id}" data-consultorio="2" class="call-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-sm">Re-evaluar en C2</button><button data-id="${patient.id}" class="attended-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm">Dar de Alta</button>`;
+                
+                let vitalsHTML = '';
+                if(patient.vitals) {
+                    vitalsHTML += '<div class="mt-3 bg-gray-50 p-2 rounded-md grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">';
+                    if(patient.vitals.ta) vitalsHTML += `<div><span class="font-bold">TA:</span> ${patient.vitals.ta} mmHg</div>`;
+                    if(patient.vitals.fc) vitalsHTML += `<div><span class="font-bold">FC:</span> ${patient.vitals.fc} lpm</div>`;
+                    if(patient.vitals.temp) vitalsHTML += `<div><span class="font-bold">T°:</span> ${patient.vitals.temp} C°</div>`;
+                    if(patient.vitals.hgt) vitalsHTML += `<div><span class="font-bold">HGT:</span> ${patient.vitals.hgt} mg/dl</div>`;
+                    if(patient.vitals.talla) vitalsHTML += `<div><span class="font-bold">Talla:</span> ${patient.vitals.talla} cm</div>`;
+                    if(patient.vitals.peso) vitalsHTML += `<div><span class="font-bold">Peso:</span> ${patient.vitals.peso} kg</div>`;
+                    if(patient.vitals.edad) vitalsHTML += `<div><span class="font-bold">Edad:</span> ${patient.vitals.edad}</div>`;
+                    vitalsHTML += '</div>';
+                }
 
                 let nurseEvolutionsHTML = ''; if (patient.nurseEvolutions && patient.nurseEvolutions.length > 0) { nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; patient.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user}</p></div>`; }); nurseEvolutionsHTML += '</div>'; }
                 let doctorNotesHTML = '<div class="mt-4 border-t pt-2">'; if (patient.doctorNotes && patient.doctorNotes.length > 0) { doctorNotesHTML += '<h4 class="text-sm font-bold mb-2">Diagnóstico / Notas Médicas:</h4><div class="space-y-2">'; patient.doctorNotes.forEach(note => { doctorNotesHTML += `<div class="text-xs bg-blue-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.doctor}</p></div>`; }); doctorNotesHTML += '</div>'; } doctorNotesHTML += `<form class="add-note-form mt-2 flex gap-2" data-id="${patient.id}"><textarea class="w-full text-sm border rounded p-1" rows="2" placeholder="Añadir nota..."></textarea><button type="submit" class="bg-blue-500 text-white rounded px-3 text-sm font-bold">Guardar</button></form></div>`;
                 
-                patientCard.innerHTML = `<div class="flex items-start justify-between"><div class="flex items-start gap-4"><div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div><div class="flex-grow"><div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-xl">${patient.nombre}</p>${statusBadge}</div><p class="text-sm text-gray-500">DNI: ${patient.dni || 'No especificado'}</p><p class="text-sm text-gray-500">Ingreso: ${arrivalTime} (${waitTime} min espera)</p>${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-100 p-2 rounded w-full break-words"><b>Nota de Ingreso:</b> ${patient.notas}</p>` : ''}${nurseEvolutionsHTML}</div></div><div><button data-dni="${patient.dni || patient.nombre}" class="history-btn text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Ver Historial</button></div></div><div class="flex items-center gap-2 mt-4 pl-7 flex-wrap">${actionButtons}</div>${doctorNotesHTML}`;
+                patientCard.innerHTML = `<div class="flex items-start justify-between"><div class="flex items-start gap-4"><div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div><div class="flex-grow"><div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-xl">${patient.nombre}</p>${statusBadge}</div><p class="text-sm text-gray-500">DNI: ${patient.dni || 'No especificado'}</p><p class="text-sm text-gray-500">Ingreso: ${arrivalTime} (${waitTime} min espera)</p>${vitalsHTML}${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-100 p-2 rounded w-full break-words"><b>Nota de Ingreso:</b> ${patient.notas}</p>` : ''}${nurseEvolutionsHTML}</div></div><div><button data-dni="${patient.dni || patient.nombre}" class="history-btn text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Ver Historial</button></div></div><div class="flex items-center gap-2 mt-4 pl-7 flex-wrap">${actionButtons}</div>${doctorNotesHTML}`;
                 return patientCard;
             }
 
@@ -102,7 +115,7 @@
                 
                 patientListContainer.innerHTML = '';
                 if (waitingPatients.length > 0) waitingPatients.forEach(p => patientListContainer.appendChild(createPatientCard(p)));
-                else patientListContainer.appendChild(noPatientsMessage);
+                else noPatientsMessage.classList.remove('hidden');
             }
 
             function renderAttendedList(history) {
@@ -115,29 +128,81 @@
             socket.on('attended_history_update', renderAttendedList);
 
             guardiaToggle.addEventListener('change', () => { isGuardiaActiva = guardiaToggle.checked; guardiaStatus.textContent = isGuardiaActiva ? 'Guardia Activa' : 'Guardia Pasiva'; });
-            startEmergencyBtn.addEventListener('click', () => emergencyModal.classList.remove('hidden'));
+            startEmergencyBtn.addEventListener('click', () => socket.emit('start_emergency'));
             endEmergencyBtn.addEventListener('click', () => socket.emit('end_emergency'));
-            cancelEmergencyBtn.addEventListener('click', () => emergencyModal.classList.add('hidden'));
-            confirmEmergencyBtn.addEventListener('click', () => { socket.emit('start_emergency'); emergencyModal.classList.add('hidden'); });
 
             function handlePatientActions(e) {
                 const target = e.target;
                 const patientId = parseInt(target.closest('[data-id]')?.dataset.id || target.dataset.id);
-                if (!patientId && !target.classList.contains('history-btn')) return;
-
                 if (target.classList.contains('call-btn')) socket.emit('call_patient', { id: patientId, consultorio: target.dataset.consultorio });
                 if (target.classList.contains('absent-btn')) socket.emit('update_patient_status', { id: patientId, status: 'ausente' });
                 if (target.classList.contains('attended-btn')) socket.emit('mark_as_attended', { patientId: patientId, attendedByUsername: currentUser.user });
                 if (target.classList.contains('pre-admission-btn')) socket.emit('update_patient_status', { id: patientId, status: 'pre_internacion' });
                 if (target.classList.contains('history-btn')) socket.emit('search_patient_history', { query: target.dataset.dni, role: 'medico' });
-                
                 if (target.closest('.add-note-form')) { e.preventDefault(); const form = target.closest('.add-note-form'); const textarea = form.querySelector('textarea'); const noteText = textarea.value.trim(); if (noteText) { socket.emit('add_doctor_note', { id: parseInt(form.dataset.id), note: noteText }); textarea.value = ''; } }
             }
             appContent.addEventListener('click', handlePatientActions);
 
             attendedHistoryList.addEventListener('click', (e) => { if (e.target.classList.contains('continue-care-btn')) { const patientId = parseInt(e.target.dataset.id); if (confirm("¿Desea reactivar a este paciente y moverlo a pre-internación?")) { socket.emit('continue_care', patientId); } } });
-            socket.on('patient_history_result', (results) => { if (results && results.length > 0) { historyResults.innerHTML = ''; results.forEach(p => { const visitDiv = document.createElement('div'); visitDiv.className = 'bg-gray-100 p-4 rounded-md'; let nurseEvolutionsHTML = ''; if (p.nurseEvolutions && p.nurseEvolutions.length > 0) { nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; p.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user}</p></div>`; }); nurseEvolutionsHTML += '</div>'; } let doctorNotesHTML = ''; if (p.doctorNotes && p.doctorNotes.length > 0) { doctorNotesHTML += '<h4 class="text-sm font-bold mt-3 mb-2 text-blue-800">Notas Médicas:</h4><div class="space-y-2">'; p.doctorNotes.forEach(note => { doctorNotesHTML += `<div class="text-xs bg-blue-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.doctor}</p></div>`; }); doctorNotesHTML += '</div>'; } visitDiv.innerHTML = `<div class="flex items-center justify-between"><p class="font-bold">${p.nombre} <span class="font-normal text-gray-600">- DNI: ${p.dni || 'N/A'}</span></p><div class="flex items-center gap-2"><span class="text-xs font-semibold">${new Date(p.attendedAt).toLocaleString('es-ES')}</span><div class="w-3 h-3 rounded-full dot-${p.nivelTriage}"></div></div></div><p class="text-sm mt-2 text-gray-700"><b>Nota de Ingreso:</b> ${p.notas || 'Sin notas.'}</p>${nurseEvolutionsHTML}${doctorNotesHTML}`; historyResults.appendChild(visitDiv); }); historyModal.classList.remove('hidden'); } else { alert('No se encontró historial para este paciente.'); } });
+            
+            socket.on('patient_history_result', (results) => {
+                historyResults.innerHTML = '';
+                if (results && results.length > 0) { 
+                    results.forEach(p => { 
+                        const visitDiv = document.createElement('div'); 
+                        visitDiv.className = 'bg-gray-100 p-4 rounded-md'; 
+                        let nurseEvolutionsHTML = ''; 
+                        if (p.nurseEvolutions && p.nurseEvolutions.length > 0) { 
+                            nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; 
+                            p.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user} (${new Date(note.timestamp).toLocaleString('es-ES')})</p></div>`; }); 
+                            nurseEvolutionsHTML += '</div>'; 
+                        } 
+                        let doctorNotesHTML = ''; 
+                        if (p.doctorNotes && p.doctorNotes.length > 0) { 
+                            doctorNotesHTML += '<h4 class="text-sm font-bold mt-3 mb-2 text-blue-800">Notas Médicas:</h4><div class="space-y-2">'; 
+                            p.doctorNotes.forEach(note => { doctorNotesHTML += `<div class="text-xs bg-blue-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.doctor} (${new Date(note.timestamp).toLocaleString('es-ES')})</p></div>`; }); 
+                            doctorNotesHTML += '</div>'; 
+                        } 
+                        
+                        visitDiv.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <p class="font-bold">${p.nombre} <span class="font-normal text-gray-600">- DNI: ${p.dni || 'N/A'}</span></p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-semibold">Atendido: ${new Date(p.attendedAt).toLocaleString('es-ES')}</span>
+                                    <div class="w-3 h-3 rounded-full dot-${p.nivelTriage}"></div>
+                                </div>
+                            </div>
+                            <p class="text-sm mt-2 text-gray-700"><b>Nota de Ingreso:</b> ${p.notas || 'Sin notas.'}</p>
+                            ${nurseEvolutionsHTML}
+                            ${doctorNotesHTML}
+                            <form class="add-observation-form mt-4 flex gap-2" data-id="${p.id}">
+                                <textarea class="w-full text-sm border rounded p-1" rows="2" placeholder="Añadir nueva nota médica..."></textarea>
+                                <button type="submit" class="bg-blue-500 text-white rounded px-3 text-sm font-bold">Guardar</button>
+                            </form>
+                        `; 
+                        historyResults.appendChild(visitDiv); 
+                    }); 
+                    historyModal.classList.remove('hidden'); 
+                } else { 
+                    alert('No se encontró historial para este paciente.'); 
+                } 
+            });
+            
             closeHistoryBtn.addEventListener('click', () => { historyModal.classList.add('hidden'); });
+            historyResults.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (e.target.classList.contains('add-observation-form')) {
+                    const form = e.target;
+                    const textarea = form.querySelector('textarea');
+                    const noteText = textarea.value.trim();
+                    if (noteText) {
+                        socket.emit('add_observation_to_attended', { id: parseInt(form.dataset.id), note: noteText });
+                        textarea.value = '';
+                        alert('Observación guardada.');
+                        historyModal.classList.add('hidden');
+                    }
+                }
+            });
 
             exportXLSBtn.addEventListener('click', () => { const dataToExport = attendedHistoryData.map((p, i) => ({ '#': i + 1, Nombre: p.nombre, Observaciones: p.notas, 'Hora de Carga': new Date(p.horaLlegada).toLocaleString('es-ES'), 'Tiempo de Espera (min)': Math.round((p.attendedAt - p.horaLlegada) / 60000) })); const worksheet = XLSX.utils.json_to_sheet(dataToExport); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, "Pacientes Atendidos"); XLSX.writeFile(workbook, "ReporteGuardiaMedica.xlsx"); });
             exportPDFBtn.addEventListener('click', () => { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.autoTable({ head: [['#', 'Nombre', 'Observaciones', 'Hora de Carga', 'Espera (min)']], body: attendedHistoryData.map((p, i) => [i + 1, p.nombre, p.notas, new Date(p.horaLlegada).toLocaleString('es-ES'), Math.round((p.attendedAt - p.horaLlegada) / 60000)]) }); doc.save('ReporteGuardiaMedica.pdf'); });
