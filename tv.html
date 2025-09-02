@@ -9,7 +9,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; translateY(0); } }
-        .patient-card, .consultorio-card { animation: slideIn 0.4s ease-out forwards; }
+        .patient-card, .consultorio-card, .observation-card { animation: slideIn 0.4s ease-out forwards; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
         .emergency-view {
             background: linear-gradient(-45deg, #b91c1c, #dc2626, #7f1d1d, #ef4444);
@@ -32,13 +32,18 @@
             <h1 class="text-5xl md:text-6xl font-black tracking-tight">Guardia Hospital A. Illia</h1>
         </header>
         
-        <main class="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+        <main class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
             <div class="flex flex-col">
                 <h2 class="text-3xl font-bold text-slate-300 mb-4 text-center">EN ESPERA</h2>
                 <div id="patientList" class="w-full space-y-4"></div>
                 <p id="noPatientsMessage" class="hidden text-center text-slate-500 text-2xl mt-20">No hay pacientes en espera.</p>
             </div>
-            <div class="flex flex-col border-l border-slate-700 px-8">
+            <div class="flex flex-col border-l border-r border-slate-700 px-8">
+                <h2 class="text-3xl font-bold text-purple-400 mb-4 text-center">EN OBSERVACIÓN</h2>
+                <div id="observationList" class="w-full space-y-4"></div>
+                <p id="noObservationMessage" class="text-center text-slate-500 text-2xl mt-20">No hay pacientes en observación.</p>
+            </div>
+            <div class="flex flex-col">
                 <h2 class="text-3xl font-bold text-slate-300 mb-4 text-center">EN CONSULTORIO</h2>
                 <div id="consultoriosList" class="w-full space-y-4"></div>
                  <p id="noConsultoriosMessage" class="text-center text-slate-500 text-2xl mt-20">Consultorios libres.</p>
@@ -63,6 +68,8 @@
             const callConsultorio = document.getElementById('callConsultorio');
             const patientListContainer = document.getElementById('patientList');
             const noPatientsMessage = document.getElementById('noPatientsMessage');
+            const observationListContainer = document.getElementById('observationList');
+            const noObservationMessage = document.getElementById('noObservationMessage');
             const consultoriosListContainer = document.getElementById('consultoriosList');
             const noConsultoriosMessage = document.getElementById('noConsultoriosMessage');
 
@@ -78,8 +85,10 @@
 
             socket.on('update_patient_list', (patients) => {
                 const waitingPatients = patients.filter(p => p.status === 'en_espera' || p.status === 'ausente');
+                const observationPatients = patients.filter(p => p.status === 'pre_internacion');
                 const attendingPatients = patients.filter(p => p.status === 'atendiendo');
                 renderWaitingList(waitingPatients);
+                renderObservationList(observationPatients);
                 renderAttendingList(attendingPatients);
             });
 
@@ -116,6 +125,17 @@
                         <div class="flex-grow"><p class="text-4xl font-bold truncate">${patient.nombre}</p></div>
                         <div style="background-color:${colorMap[patient.nivelTriage]}" class="w-6 h-6 rounded-full flex-shrink-0"></div>`;
                     patientListContainer.appendChild(card);
+                });
+            }
+
+            function renderObservationList(patients) {
+                observationListContainer.innerHTML = '';
+                noObservationMessage.classList.toggle('hidden', patients.length > 0);
+                patients.forEach(patient => {
+                    const card = document.createElement('div');
+                    card.className = 'observation-card bg-purple-900 rounded-xl shadow-lg p-5';
+                    card.innerHTML = `<p class="text-2xl font-semibold mt-1">${patient.nombre}</p>`;
+                    observationListContainer.appendChild(card);
                 });
             }
 
