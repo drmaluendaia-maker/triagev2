@@ -26,7 +26,7 @@
             <h1 class="text-4xl font-bold text-center mb-8">Lista de Pacientes en Espera</h1><div id="patientList" class="space-y-4"><p id="noPatientsMessage" class="text-center text-gray-500 mt-12 text-xl">No hay pacientes en espera.</p></div>
         </main>
 
-        <div class="container mx-auto mt-8 bg-white rounded-2xl shadow-2xl p-8 mb-8"><div class="flex justify-between items-center mb-4"><h2 class="text-3xl font-bold">Pacientes Atendidos en mi Guardia</h2><div class="flex gap-2"><button id="exportXLS" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Exportar XLS</button><button id="exportPDF" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Exportar PDF</button></div></div><div class="h-64 overflow-y-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ingreso</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Espera (min)</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th></tr></thead><tbody id="attendedHistoryList" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>
+        <div class="container mx-auto mt-8 bg-white rounded-2xl shadow-2xl p-8 mb-8"><div class="flex justify-between items-center mb-4"><h2 class="text-3xl font-bold">Pacientes Atendidos en mi Guardia</h2><div class="flex gap-2"><button id="exportXLS" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Exportar XLS</button><button id="exportPDF" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Exportar PDF</button></div></div><div class="h-64 overflow-y-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ingreso</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Espera (min)</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th></tr></thead><tbody id="attendedHistoryList" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
@@ -121,7 +121,7 @@
             function renderAttendedList(history) {
                 attendedHistoryData = history;
                 attendedHistoryList.innerHTML = '';
-                history.forEach((p, index) => { const row = document.createElement('tr'); const arrivalTime = new Date(p.horaLlegada).toLocaleString('es-ES'); const waitTime = Math.round((p.attendedAt - p.horaLlegada) / 60000); row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap">${index + 1}</td><td class="px-6 py-4 whitespace-nowrap">${p.nombre}</td><td class="px-6 py-4 whitespace-nowrap">${arrivalTime}</td><td class="px-6 py-4 whitespace-nowrap">${waitTime}</td><td class="px-6 py-4"><button data-id="${p.id}" class="continue-care-btn text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Continuar Atención</button></td>`; attendedHistoryList.appendChild(row); });
+                history.forEach((p, index) => { const row = document.createElement('tr'); const arrivalTime = new Date(p.horaLlegada).toLocaleString('es-ES'); const waitTime = Math.round((p.attendedAt - p.horaLlegada) / 60000); row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap">${index + 1}</td><td class="px-6 py-4 whitespace-nowrap">${p.nombre}</td><td class="px-6 py-4 whitespace-nowrap">${arrivalTime}</td><td class="px-6 py-4 whitespace-nowrap">${waitTime}</td><td class="px-6 py-4"><button data-id="${p.id}" class="view-add-note-btn text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Ver/Añadir Nota</button><button data-id="${p.id}" class="continue-care-btn text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2">Continuar Atención</button></td>`; attendedHistoryList.appendChild(row); });
             }
 
             socket.on('update_patient_list', (patients) => { renderAllLists(patients); socket.emit('get_attended_history'); });
@@ -143,7 +143,19 @@
             }
             appContent.addEventListener('click', handlePatientActions);
 
-            attendedHistoryList.addEventListener('click', (e) => { if (e.target.classList.contains('continue-care-btn')) { const patientId = parseInt(e.target.dataset.id); if (confirm("¿Desea reactivar a este paciente y moverlo a pre-internación?")) { socket.emit('continue_care', patientId); } } });
+            attendedHistoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('continue-care-btn')) {
+                    const patientId = parseInt(e.target.dataset.id);
+                    if (confirm("¿Desea reactivar a este paciente y moverlo a pre-internación?")) {
+                        socket.emit('continue_care', patientId);
+                    }
+                }
+                if (e.target.classList.contains('view-add-note-btn')) {
+                    const patientId = parseInt(e.target.dataset.id);
+                    const patient = attendedHistoryData.find(p => p.id === patientId);
+                    socket.emit('search_patient_history', { query: patient.dni || patient.nombre, role: 'medico' });
+                }
+            });
             
             socket.on('patient_history_result', (results) => {
                 historyResults.innerHTML = '';
@@ -204,8 +216,45 @@
                 }
             });
 
-            exportXLSBtn.addEventListener('click', () => { const dataToExport = attendedHistoryData.map((p, i) => ({ '#': i + 1, Nombre: p.nombre, Observaciones: p.notas, 'Hora de Carga': new Date(p.horaLlegada).toLocaleString('es-ES'), 'Tiempo de Espera (min)': Math.round((p.attendedAt - p.horaLlegada) / 60000) })); const worksheet = XLSX.utils.json_to_sheet(dataToExport); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, "Pacientes Atendidos"); XLSX.writeFile(workbook, "ReporteGuardiaMedica.xlsx"); });
-            exportPDFBtn.addEventListener('click', () => { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.autoTable({ head: [['#', 'Nombre', 'Observaciones', 'Hora de Carga', 'Espera (min)']], body: attendedHistoryData.map((p, i) => [i + 1, p.nombre, p.notas, new Date(p.horaLlegada).toLocaleString('es-ES'), Math.round((p.attendedAt - p.horaLlegada) / 60000)]) }); doc.save('ReporteGuardiaMedica.pdf'); });
+            const getNotes = (notesArray) => {
+                if (!notesArray || notesArray.length === 0) return '';
+                return notesArray.map(note => `${note.text} (${note.user || note.doctor})`).join('; ');
+            };
+
+            const exportData = (format) => {
+                const dataToExport = attendedHistoryData.map(p => ({
+                    'DNI': p.dni || 'N/A',
+                    'Nivel de Triage': p.nivelTriage,
+                    'TA': p.vitals?.ta || '',
+                    'FC': p.vitals?.fc || '',
+                    'Temp': p.vitals?.temp || '',
+                    'HGT': p.vitals?.hgt || '',
+                    'Talla': p.vitals?.talla || '',
+                    'Peso': p.vitals?.peso || '',
+                    'Edad': p.vitals?.edad || '',
+                    'Notas de Ingreso': p.notas,
+                    'Notas de Enfermería': getNotes(p.nurseEvolutions),
+                    'Notas Médicas': getNotes(p.doctorNotes)
+                }));
+
+                if (format === 'xls') {
+                    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Pacientes Atendidos");
+                    XLSX.writeFile(workbook, "ReporteGuardiaMedica.xlsx");
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape' });
+                    doc.autoTable({
+                        head: [Object.keys(dataToExport[0])],
+                        body: dataToExport.map(Object.values),
+                    });
+                    doc.save('ReporteGuardiaMedica.pdf');
+                }
+            };
+
+            exportXLSBtn.addEventListener('click', () => exportData('xls'));
+            exportPDFBtn.addEventListener('click', () => exportData('pdf'));
         });
     </script>
 </body>
