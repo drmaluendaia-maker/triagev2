@@ -108,7 +108,7 @@
                     if (patient.status === 'ausente') cardClasses += ' status-ausente';
                     
                     card.className = cardClasses;
-                    const colorMap = { rojo: '#ef4444', amarillo: '#f59e0b', verde: '#10b981', azul: '#3b82f6' };
+                    const colorMap = { rojo: '#ef4444', naranja: '#f97316', amarillo: '#f59e0b', verde: '#10b981', azul: '#3b82f6' };
                     card.style.borderLeft = `8px solid ${colorMap[patient.nivelTriage]}`;
 
                     card.innerHTML = `
