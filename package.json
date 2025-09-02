@@ -1,6 +1,15 @@
 {
+  "name": "triage-v2",
+  "version": "2.0.0",
+  "description": "Sistema de gestión de pacientes para guardias médicas.",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "author": "Dr. Maluenda IA & Gemini",
   "dependencies": {
-    "express": "^5.1.0",
-    "socket.io": "^4.8.1"
+    "express": "^4.18.2",
+    "open": "^8.4.0",
+    "socket.io": "^4.5.4"
   }
 }
