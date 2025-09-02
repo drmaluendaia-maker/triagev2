@@ -9,7 +9,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .triage-button.selected { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.5); }
-        .dot-rojo { background-color: #ef4444; } .dot-amarillo { background-color: #f59e0b; }
+        .dot-rojo { background-color: #ef4444; } .dot-naranja { background-color: #f97316; } .dot-amarillo { background-color: #f59e0b; }
         .dot-verde { background-color: #10b981; } .dot-azul { background-color: #3b82f6; }
         .edit-triage-btn { transition: transform 0.2s; } .edit-triage-btn:hover { transform: scale(1.2); }
         .status-atendiendo { background-color: #3b82f6; color: white; }
@@ -20,60 +20,92 @@
 
     <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-sm">
-            <h2 class="text-2xl font-bold mb-4">Acceso Restringido</h2>
-            <p id="loginMessage" class="text-gray-600 mb-6">Iniciando sesión...</p>
-            <form id="loginForm" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Acceso Enfermería</h2>
+            <form id="loginForm">
+                <input type="text" id="userInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="Usuario (ej: admin)">
                 <input type="password" id="passwordInput" class="w-full px-4 py-3 border rounded-lg mb-4 text-center" placeholder="••••••••">
+                 <div class="flex items-center justify-center mb-4"><input id="rememberMe" type="checkbox" class="h-4 w-4 text-indigo-600 rounded"><label for="rememberMe" class="ml-2 block text-sm text-gray-900">Recordar en este dispositivo</label></div>
                 <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Ingresar</button>
                 <p id="loginError" class="text-red-500 text-sm mt-2 h-4"></p>
             </form>
         </div>
     </div>
-
-    <div id="emergencyConfirmModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-red-600">Confirmar Emergencia</h2>
-            <p class="text-gray-600 mb-6">¿Estás seguro de que deseas activar el protocolo de emergencia?</p>
-            <div class="flex justify-center gap-4">
-                <button id="confirmEmergencyBtn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Sí, Activar</button>
-                <button id="cancelEmergencyBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancelar</button>
+    
+    <div id="historyModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-4xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Historial del Paciente</h2>
+                <button id="closeHistoryBtn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
             </div>
+            <div id="historyResults" class="max-h-[80vh] overflow-y-auto space-y-4 pr-2"></div>
         </div>
     </div>
 
-    <div id="appContent" class="opacity-0 transition-opacity duration-500 p-8">
-        <div class="container mx-auto mb-6 flex justify-end gap-4">
-            <button id="startEmergencyBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg">Activar Emergencia</button>
-            <button id="endEmergencyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hidden">Finalizar Emergencia</button>
-        </div>
+    <div id="appContent" class="hidden opacity-0 transition-opacity duration-500 p-8">
+        <header class="container mx-auto mb-6 flex justify-between items-center">
+             <h1 class="text-2xl font-bold text-gray-700">Módulo de Registro</h1>
+             <div>
+                <span id="currentUser" class="text-sm text-gray-600 mr-4"></span>
+                <button id="logoutBtn" class="text-sm text-gray-600 hover:text-black font-semibold">Cerrar Sesión</button>
+             </div>
+        </header>
+
         <div class="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="bg-white rounded-2xl shadow-2xl p-8 self-start">
-                <h1 class="text-4xl font-bold text-center mb-6">Registro de Pacientes</h1>
+                <h2 class="text-3xl font-bold text-center mb-6">Registro de Pacientes</h2>
                 <form id="triageForm" class="space-y-6">
-                    <div>
-                        <label for="patientName" class="block text-sm font-medium text-gray-700 mb-2">Nombre y Apellido</label>
-                        <input type="text" id="patientName" required class="w-full px-4 py-3 border rounded-lg">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="patientName" class="block text-sm font-medium text-gray-700 mb-2">Nombre y Apellido</label>
+                            <input type="text" id="patientName" required class="w-full px-4 py-3 border rounded-lg">
+                        </div>
+                        <div>
+                            <label for="patientDni" class="block text-sm font-medium text-gray-700 mb-2">DNI</label>
+                            <input type="number" id="patientDni" class="w-full px-4 py-3 border rounded-lg">
+                        </div>
                     </div>
                     <div>
-                        <label for="patientNotes" class="block text-sm font-medium text-gray-700 mb-2">Notas (Opcional)</label>
+                        <span class="block text-sm font-medium text-gray-700 mb-2">Signos Vitales</span>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            <input type="text" id="vitalTa" placeholder="TA (mmHg)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="number" id="vitalFc" placeholder="FC (lpm)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="number" step="0.1" id="vitalTemp" placeholder="T° (C°)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="number" id="vitalHgt" placeholder="HGT (mg/dl)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="number" id="vitalTalla" placeholder="Talla (cm)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="number" step="0.1" id="vitalPeso" placeholder="Peso (kg)" class="px-2 py-2 border rounded-lg text-sm">
+                            <input type="text" id="vitalEdad" placeholder="Edad" class="px-2 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="patientNotes" class="block text-sm font-medium text-gray-700 mb-2">Notas de Enfermería (Opcional)</label>
                         <textarea id="patientNotes" rows="3" class="w-full px-4 py-3 border rounded-lg"></textarea>
                     </div>
                     <div>
                         <span class="block text-sm font-medium text-gray-700 mb-2">Nivel de Triage</span>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             <button type="button" data-level="rojo" class="triage-button text-white font-bold py-4 rounded-lg bg-red-600">Nivel 1</button>
-                            <button type="button" data-level="amarillo" class="triage-button text-white font-bold py-4 rounded-lg bg-yellow-500">Nivel 2</button>
-                            <button type="button" data-level="verde" class="triage-button text-white font-bold py-4 rounded-lg bg-green-600">Nivel 3</button>
-                            <button type="button" data-level="azul" class="triage-button text-white font-bold py-4 rounded-lg bg-blue-600">Nivel 4</button>
+                            <button type="button" data-level="naranja" class="triage-button text-white font-bold py-4 rounded-lg bg-orange-500">Nivel 2</button>
+                            <button type="button" data-level="amarillo" class="triage-button text-white font-bold py-4 rounded-lg bg-yellow-500">Nivel 3</button>
+                            <button type="button" data-level="verde" class="triage-button text-white font-bold py-4 rounded-lg bg-green-600">Nivel 4</button>
+                            <button type="button" data-level="azul" class="triage-button text-white font-bold py-4 rounded-lg bg-blue-600">Nivel 5</button>
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-lg">Registrar Paciente</button>
                 </form>
             </div>
-            <div class="bg-white rounded-2xl shadow-2xl p-8">
-                <h2 class="text-4xl font-bold text-center mb-6">Pacientes en Espera</h2>
-                <div id="patientList" class="space-y-4 h-[calc(60vh+50px)] overflow-y-auto pr-2">
-                    <p id="noPatientsMessage" class="text-center text-gray-500 mt-8">No hay pacientes en espera.</p>
+            <div>
+                <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+                    <h2 class="text-2xl font-bold text-center mb-4">Búsqueda de Historial</h2>
+                    <form id="historySearchForm" class="flex gap-2">
+                        <input type="text" id="historySearchInput" placeholder="Buscar por Nombre o DNI..." class="w-full px-4 py-2 border rounded-lg">
+                        <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Buscar</button>
+                    </form>
+                </div>
+                <div class="bg-white rounded-2xl shadow-2xl p-8">
+                    <h2 class="text-3xl font-bold text-center mb-6">Pacientes en Espera</h2>
+                    <div id="patientList" class="space-y-4 h-[calc(60vh-120px)] overflow-y-auto pr-2">
+                        <p id="noPatientsMessage" class="text-center text-gray-500 mt-8">No hay pacientes en espera.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,95 +115,78 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const socket = io();
-            const loginOverlay = document.getElementById('loginOverlay');
-            const loginForm = document.getElementById('loginForm');
-            const passwordInput = document.getElementById('passwordInput');
-            const loginError = document.getElementById('loginError');
-            const loginMessage = document.getElementById('loginMessage');
-            const appContent = document.getElementById('appContent');
-            const emergencyModal = document.getElementById('emergencyConfirmModal');
-            const confirmEmergencyBtn = document.getElementById('confirmEmergencyBtn');
-            const cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn');
-            const triageForm = document.getElementById('triageForm');
-            const patientNameInput = document.getElementById('patientName');
-            const patientNotesInput = document.getElementById('patientNotes');
-            const triageButtons = document.querySelectorAll('.triage-button');
-            const patientList = document.getElementById('patientList');
-            const noPatientsMessage = document.getElementById('noPatientsMessage');
-            const startEmergencyBtn = document.getElementById('startEmergencyBtn');
-            const endEmergencyBtn = document.getElementById('endEmergencyBtn');
+            const loginOverlay = document.getElementById('loginOverlay'), loginForm = document.getElementById('loginForm'), userInput = document.getElementById('userInput'), passwordInput = document.getElementById('passwordInput'), rememberMeCheck = document.getElementById('rememberMe'), loginError = document.getElementById('loginError'), appContent = document.getElementById('appContent'), triageForm = document.getElementById('triageForm'), patientNameInput = document.getElementById('patientName'), patientDniInput = document.getElementById('patientDni'), patientNotesInput = document.getElementById('patientNotes'), triageButtons = document.querySelectorAll('.triage-button'), patientList = document.getElementById('patientList'), noPatientsMessage = document.getElementById('noPatientsMessage'), historyModal = document.getElementById('historyModal'), historyResultsContainer = document.getElementById('historyResults'), closeHistoryBtn = document.getElementById('closeHistoryBtn'), historySearchForm = document.getElementById('historySearchForm'), historySearchInput = document.getElementById('historySearchInput'), currentUserSpan = document.getElementById('currentUser'), logoutBtn = document.getElementById('logoutBtn');
             let selectedLevel = null;
 
-            const sessionToken = localStorage.getItem('triageSessionToken');
-            if (sessionToken) {
-                socket.emit('authenticate_token', sessionToken);
-            } else {
-                loginMessage.textContent = 'Por favor, ingrese la contraseña para continuar.';
-                loginForm.classList.remove('hidden');
+            const token = localStorage.getItem('triageAuthToken');
+            if (token) {
+                socket.emit('authenticate_token', token);
             }
 
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                socket.emit('authenticate_password', passwordInput.value);
+                socket.emit('authenticate_user', { user: userInput.value, pass: passwordInput.value });
             });
 
-            socket.on('auth_success', (data) => {
-                localStorage.setItem('triageSessionToken', data.token);
-                loginOverlay.style.display = 'none';
-                appContent.classList.remove('opacity-0');
+            socket.on('auth_success', (user) => {
+                 if (user.role === 'registro') {
+                    if (rememberMeCheck.checked) localStorage.setItem('triageAuthToken', user.token);
+                    loginOverlay.style.display = 'none';
+                    appContent.classList.remove('hidden','opacity-0');
+                    currentUserSpan.textContent = `Usuario: ${user.fullName}`;
+                } else {
+                    loginError.textContent = 'Acceso denegado para este rol.';
+                }
             });
 
             socket.on('auth_fail', () => {
-                localStorage.removeItem('triageSessionToken');
-                loginMessage.textContent = 'Contraseña incorrecta. Intente de nuevo.';
-                loginForm.classList.remove('hidden');
-                passwordInput.value = '';
+                localStorage.removeItem('triageAuthToken');
+                loginError.textContent = 'Usuario o contraseña incorrectos.';
+            });
+            
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('triageAuthToken');
+                location.reload();
             });
 
             function renderPatientList(patients) {
                 patientList.innerHTML = '';
-                if (patients.length === 0) {
-                    patientList.appendChild(noPatientsMessage);
-                } else {
-                    patients.forEach(patient => {
-                        const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                        const waitTime = Math.floor((Date.now() - patient.horaLlegada) / 60000);
-                        const patientDiv = document.createElement('div');
-                        patientDiv.className = 'bg-gray-50 p-4 rounded-lg shadow';
-                        let statusBadge = '';
-                        if (patient.status === 'atendiendo') statusBadge = `<span class="status-atendiendo text-xs font-bold uppercase px-2 py-1 rounded-full">Atendiendo</span>`;
-                        if (patient.status === 'ausente') statusBadge = `<span class="status-ausente text-xs font-bold uppercase px-2 py-1 rounded-full">Ausente</span>`;
+                const waitingPatients = patients.filter(p => p.status !== 'atendiendo');
+                noPatientsMessage.classList.toggle('hidden', waitingPatients.length > 0);
 
-                        patientDiv.innerHTML = `
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-start gap-4">
-                                    <div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div>
-                                    <div class="flex-grow">
-                                        <div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-lg">${patient.nombre}</p>${statusBadge}</div>
-                                        <p class="text-sm text-gray-500">Ingreso: ${arrivalTime}</p>
-                                        <p class="text-sm text-gray-500">Espera: ${waitTime} min</p>
-                                        ${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-200 p-2 rounded w-full break-words"><b>Nota:</b> ${patient.notas}</p>` : ''}
-                                    </div>
+                waitingPatients.forEach(patient => {
+                    const arrivalTime = new Date(patient.horaLlegada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    const waitTime = Math.floor((Date.now() - patient.horaLlegada) / 60000);
+                    const patientDiv = document.createElement('div');
+                    patientDiv.className = 'bg-gray-50 p-4 rounded-lg shadow';
+                    let statusBadge = '';
+                    if (patient.status === 'ausente') statusBadge = `<span class="status-ausente text-xs font-bold uppercase px-2 py-1 rounded-full">Ausente</span>`;
+                    else if(patient.status === 'pre_internacion') statusBadge = `<span class="bg-purple-500 text-white text-xs font-bold uppercase px-2 py-1 rounded-full">Pre-Internación</span>`;
+
+                    patientDiv.innerHTML = `
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start gap-4">
+                                <div class="w-3 h-3 rounded-full dot-${patient.nivelTriage} mt-2 flex-shrink-0"></div>
+                                <div class="flex-grow">
+                                    <div class="flex items-center gap-3 flex-wrap"><p class="font-bold text-lg">${patient.nombre}</p>${statusBadge}</div>
+                                    <p class="text-sm text-gray-500">Ingreso: ${arrivalTime} (Espera: ${waitTime} min)</p>
+                                    ${patient.notas ? `<p class="text-xs text-gray-600 mt-2 italic bg-gray-200 p-2 rounded w-full break-words"><b>Nota:</b> ${patient.notas}</p>` : ''}
                                 </div>
-                                <button data-id="${patient.id}" class="delete-button bg-red-100 text-red-700 font-semibold py-1 px-2 rounded text-xs hover:bg-red-200 ml-2">Eliminar</button>
                             </div>
-                            <div class="flex items-center gap-3 mt-3 pl-7">
-                                <span class="text-xs font-semibold">Cambiar Nivel:</span>
-                                <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-rojo" data-id="${patient.id}" data-level="rojo"></span>
-                                <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-amarillo" data-id="${patient.id}" data-level="amarillo"></span>
-                                <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-verde" data-id="${patient.id}" data-level="verde"></span>
-                                <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-azul" data-id="${patient.id}" data-level="azul"></span>
-                            </div>`;
-                        patientList.appendChild(patientDiv);
-                    });
-                }
+                        </div>
+                        <div class="flex items-center gap-3 mt-3 pl-7">
+                            <span class="text-xs font-semibold">Cambiar:</span>
+                            <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-rojo" data-id="${patient.id}" data-level="rojo"></span>
+                            <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-naranja" data-id="${patient.id}" data-level="naranja"></span>
+                            <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-amarillo" data-id="${patient.id}" data-level="amarillo"></span>
+                            <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-verde" data-id="${patient.id}" data-level="verde"></span>
+                            <span class="edit-triage-btn cursor-pointer w-4 h-4 rounded-full dot-azul" data-id="${patient.id}" data-level="azul"></span>
+                        </div>`;
+                    patientList.appendChild(patientDiv);
+                });
             }
 
             socket.on('update_patient_list', renderPatientList);
-            socket.on('emergency_status_update', (isEmergency) => {
-                startEmergencyBtn.classList.toggle('hidden', isEmergency);
-                endEmergencyBtn.classList.toggle('hidden', !isEmergency);
-            });
 
             triageButtons.forEach(button => {
                 button.addEventListener('click', () => {
@@ -184,15 +199,22 @@
             triageForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 if (!patientNameInput.value.trim() || !selectedLevel) {
-                    alert("Complete nombre y nivel.");
+                    alert("Complete nombre y nivel de triage.");
                     return;
                 }
                 const newPatient = {
                     id: Date.now(),
                     nombre: patientNameInput.value.trim(),
+                    dni: patientDniInput.value.trim(),
+                    vitals: {
+                        ta: document.getElementById('vitalTa').value, fc: document.getElementById('vitalFc').value,
+                        temp: document.getElementById('vitalTemp').value, hgt: document.getElementById('vitalHgt').value,
+                        talla: document.getElementById('vitalTalla').value, peso: document.getElementById('vitalPeso').value,
+                        edad: document.getElementById('vitalEdad').value,
+                    },
                     notas: patientNotesInput.value.trim(),
                     nivelTriage: selectedLevel,
-                    ordenTriage: { 'rojo': 1, 'amarillo': 2, 'verde': 3, 'azul': 4 }[selectedLevel],
+                    ordenTriage: { 'rojo': 1, 'naranja': 2, 'amarillo': 3, 'verde': 4, 'azul': 5 }[selectedLevel],
                     horaLlegada: Date.now(),
                     status: 'en_espera'
                 };
@@ -205,16 +227,70 @@
 
             patientList.addEventListener('click', (e) => {
                 const target = e.target;
-                if (target.classList.contains('delete-button')) socket.emit('delete_patient', parseInt(target.dataset.id, 10));
-                if (target.classList.contains('edit-triage-btn')) socket.emit('update_patient_level', { id: parseInt(target.dataset.id, 10), newLevel: target.dataset.level });
+                if (target.classList.contains('edit-triage-btn')) {
+                    socket.emit('update_patient_level', { id: parseInt(target.dataset.id, 10), newLevel: target.dataset.level });
+                }
+            });
+            
+            historySearchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const query = historySearchInput.value.trim();
+                if (query) {
+                    socket.emit('search_patient_history', { query, role: 'registro' });
+                }
             });
 
-            startEmergencyBtn.addEventListener('click', () => emergencyModal.classList.remove('hidden'));
-            endEmergencyBtn.addEventListener('click', () => socket.emit('end_emergency'));
-            cancelEmergencyBtn.addEventListener('click', () => emergencyModal.classList.add('hidden'));
-            confirmEmergencyBtn.addEventListener('click', () => {
-                socket.emit('start_emergency');
-                emergencyModal.classList.add('hidden');
+            socket.on('patient_history_result', (results) => {
+                historyResultsContainer.innerHTML = '';
+                if (results && results.length > 0) {
+                    results.forEach(p => {
+                        const visitDiv = document.createElement('div');
+                        visitDiv.className = 'bg-gray-100 p-4 rounded-md';
+                        let nurseEvolutionsHTML = ''; 
+                        if (p.nurseEvolutions && p.nurseEvolutions.length > 0) { 
+                            nurseEvolutionsHTML += '<h4 class="text-sm font-bold mt-3 mb-1 text-yellow-800">Evol. Enfermería:</h4><div class="space-y-1">'; 
+                            p.nurseEvolutions.forEach(note => { nurseEvolutionsHTML += `<div class="text-xs bg-yellow-50 p-2 rounded"><p>${note.text}</p><p class="text-right text-gray-500 font-semibold">- ${note.user} (${new Date(note.timestamp).toLocaleString('es-ES')})</p></div>`; }); 
+                            nurseEvolutionsHTML += '</div>'; 
+                        }
+                        
+                        visitDiv.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <p class="font-bold">${p.nombre} <span class="font-normal text-gray-600">- DNI: ${p.dni || 'N/A'}</span></p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-semibold">Atendido: ${new Date(p.attendedAt).toLocaleString('es-ES')}</span>
+                                    <div class="w-3 h-3 rounded-full dot-${p.nivelTriage}"></div>
+                                </div>
+                            </div>
+                            <p class="text-sm mt-2 text-gray-700"><b>Nota de Ingreso:</b> ${p.notas || 'Sin notas.'}</p>
+                            ${nurseEvolutionsHTML}
+                            <form class="add-observation-form mt-4 flex gap-2" data-id="${p.id}">
+                                <textarea class="w-full text-sm border rounded p-1" rows="2" placeholder="Añadir nueva observación de enfermería..."></textarea>
+                                <button type="submit" class="bg-blue-500 text-white rounded px-3 text-sm font-bold">Guardar</button>
+                            </form>
+                        `;
+                        historyResultsContainer.appendChild(visitDiv);
+                    });
+                    historyModal.classList.remove('hidden');
+                } else {
+                    alert('No se encontró historial para este paciente.');
+                }
+            });
+
+            closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+
+            historyResultsContainer.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (e.target.classList.contains('add-observation-form')) {
+                    const form = e.target;
+                    const textarea = form.querySelector('textarea');
+                    const noteText = textarea.value.trim();
+                    if (noteText) {
+                        socket.emit('add_observation_to_attended', { id: parseInt(form.dataset.id), note: noteText });
+                        textarea.value = '';
+                        alert('Observación guardada.');
+                        historyModal.classList.add('hidden');
+                    }
+                }
             });
         });
     </script>
